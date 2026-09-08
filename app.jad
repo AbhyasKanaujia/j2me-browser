@@ -1,0 +1,9 @@
+MIDlet-Name: J2ME Browser
+MIDlet-Version: 0.1.0
+MIDlet-Vendor: j2me-browser
+MIDlet-1: J2ME Browser,,MainMIDlet
+MIDlet-Description: A web browser for J2ME (MIDP 2.0 / CLDC 1.1) feature phones. This build is the Hello World milestone.
+MicroEdition-Configuration: CLDC-1.1
+MicroEdition-Profile: MIDP-2.0
+MIDlet-Jar-URL: dist/app.jar
+MIDlet-Jar-Size: 1955
