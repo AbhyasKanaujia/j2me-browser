@@ -23,15 +23,10 @@ feature phones — no proxy, no third-party service, no expiration date.
 Most "mobile browsers" for feature phones of this era — Opera Mini, UC
 Browser — worked by proxying every request through a company-run server
 that did the real fetching, JS execution, and TLS, then sent the phone a
-compressed, transcoded result. That model has two hard failures this
-project explicitly avoids: it can't reach LAN/localhost addresses, and it
-dies the moment the company hosting it loses interest. UC Browser's J2ME
-client stopped working outright when its proxy was shut down; Opera Mini
-only still works because Opera still pays to keep theirs running.
-
-j2me-browser does the opposite: **everything runs on-device** — HTTP(S),
-HTML parsing, and rendering. No server dependency, no single point of
-failure beyond the phone itself.
+compressed, transcoded result. j2me-browser does the opposite: **everything
+runs on-device** — HTTP(S), HTML parsing, and rendering. No server
+dependency, no single point of failure beyond the phone itself. Full
+rationale: [ADR-0001](docs/adr/0001-no-proxy-self-sufficient-client.md).
 
 The rendering bar is intentionally modest: think ~2011 Android Gingerbread's
 stock browser, not a modern desktop-grade engine. Real HTTP(S) and real (if basic)
@@ -116,20 +111,13 @@ to. That constraint drives the design:
 
 - **Primitives (AES, SHA-2, RSA/EC big-integer math) vs. protocol
   (handshake, record layer, cipher negotiation) are architecturally
-  separate.** The math doesn't change over time and is reasonable to adapt
-  from existing prior art — Bouncy Castle's old J2ME/CLDC "Lightweight
-  Crypto API" (MIT-style license) is a plausible source of raw material for
-  this layer. The protocol logic is what needs to survive future TLS
-  versions, so it's implemented directly against the IETF RFCs (TLS 1.2 =
-  [RFC 5246](https://www.rfc-editor.org/rfc/rfc5246)) rather than ported
-  from anyone's implementation — grounding it in a spec document, not a
-  specific codebase, is what should make it possible for a future
-  contributor with zero J2ME background to pick this up decades from now.
+  separate** — primitives are adapted from existing prior art, protocol
+  logic is implemented directly against the IETF RFCs. Full rationale:
+  [ADR-0002](docs/adr/0002-tls-primitives-vs-protocol-split.md).
 - **One deliberately narrow cipher suite, not a flexible negotiator:**
-  ECDHE (P-256) key exchange + AES-GCM + SHA-256. RSA key exchange is
-  skipped entirely, not just deprioritized — elliptic curve math is both
-  cheaper on constrained CPUs and lighter on constrained heaps than RSA-2048
-  at equivalent security.
+  ECDHE (P-256) key exchange + AES-GCM + SHA-256, with RSA key exchange
+  skipped entirely rather than deprioritized. Full rationale:
+  [ADR-0003](docs/adr/0003-ecdhe-p256-aes-gcm-cipher-suite.md).
 - Rough performance target, based on scaling a sourced ECC benchmark
   (174-bit curve, ~400ms on a 104MHz ARM7) up to this project's baseline
   hardware (~235MHz): a P-256 operation should land somewhere around
@@ -149,10 +137,8 @@ hardware in hand, not a hypothetical. It's chosen deliberately as the
 *harder* constraint rather than the easiest one: more capable devices, like
 later Asha-platform-era hardware (~1GHz ARM11 class) — also real hardware
 in hand — run the same build comfortably with no special-casing or
-separate build variant required. Targeting the constrained end also reaches
-a far larger and more iconic slice of the S40 install base — and its
-enthusiast/contributor community — than optimizing for premium-tier
-hardware only would.
+separate build variant required. Full rationale:
+[ADR-0004](docs/adr/0004-device-baseline-constrained-floor.md).
 
 ## Getting Started
 
@@ -224,6 +210,11 @@ Over Bluetooth:
 - `app.jad` — app descriptor (name/version/vendor metadata)
 - `Makefile` — build pipeline
 - `scripts/serve.py` — HTTP server for OTA installs, serving from repo root
+- `docs/adr/` — Architecture Decision Records: the why behind foundational,
+  hard-to-reverse choices (no-proxy design, TLS split, cipher suite,
+  device baseline), one file per decision, starting with
+  [ADR-0000](docs/adr/0000-use-architecture-decision-records.md) on why
+  this repo uses ADRs at all
 
 As the modules described in [Architecture & Roadmap](#architecture--roadmap)
 land, this layout will grow to reflect them (e.g. separate packages for
