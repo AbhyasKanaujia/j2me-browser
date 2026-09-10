@@ -1,17 +1,162 @@
 # j2me-browser
 
-A web browser for J2ME (MIDP 2.0 / CLDC 1.1) feature phones — the Java
-runtime shared by Nokia's Series 40 / Asha platform devices and a wide range
-of other feature phones from that era. Developed and tested primarily
-against Nokia S40/Asha hardware, but not limited to it: any MIDP 2.0 / CLDC
-1.1 device should run it.
+A from-scratch, self-sufficient web browser for J2ME (MIDP 2.0 / CLDC 1.1)
+feature phones — no proxy, no third-party service, no expiration date.
 
-This is a real, in-progress browser project — not a throwaway template.
-Right now it's at its first milestone: a Hello World MIDlet proving out the
-build/install pipeline end to end. Actual browser functionality (fetching
-pages, rendering HTML) is the next step.
+## Table of Contents
 
-## Prerequisites
+- [About](#about)
+- [Status](#status)
+- [How much of a browser is this?](#how-much-of-a-browser-is-this)
+- [Architecture & Roadmap](#architecture--roadmap)
+- [HTTPS / TLS plan](#https--tls-plan)
+- [Device & compatibility target](#device--compatibility-target)
+- [Getting Started](#getting-started)
+- [Installing on a real device](#installing-on-a-real-device)
+- [Toolchain (Pinned)](#toolchain-pinned)
+- [Build Pipeline](#build-pipeline)
+- [Project Layout](#project-layout)
+- [Contributing](#contributing)
+
+## About
+
+Most "mobile browsers" for feature phones of this era — Opera Mini, UC
+Browser — worked by proxying every request through a company-run server
+that did the real fetching, JS execution, and TLS, then sent the phone a
+compressed, transcoded result. That model has two hard failures this
+project explicitly avoids: it can't reach LAN/localhost addresses, and it
+dies the moment the company hosting it loses interest. UC Browser's J2ME
+client stopped working outright when its proxy was shut down; Opera Mini
+only still works because Opera still pays to keep theirs running.
+
+j2me-browser does the opposite: **everything runs on-device** — HTTP(S),
+HTML parsing, and rendering. No server dependency, no single point of
+failure beyond the phone itself.
+
+The rendering bar is intentionally modest: think ~2011 Android Gingerbread's
+stock browser, not a modern desktop-grade engine. Real HTTP(S) and real (if basic)
+page content, not a fully modern layout engine on 2009-era silicon — that
+expectation would be wrong to hold, and holding it is how these projects
+usually die from scope creep.
+
+## Status
+
+- ✅ Build/install pipeline (compile → preverify → package → OTA/Bluetooth install)
+- ✅ Live network I/O — the MIDlet fetches `http://info.cern.ch/` over plain
+  HTTP on startup and renders the result, proving the transport stack works
+  end to end on both emulator and real hardware
+- 🚧 Everything else below is planned, not yet built
+
+## How much of a browser is this?
+
+**In scope:**
+- HTTP and HTTPS
+- Basic HTML: headings, paragraphs, lists, tables, links
+- Simple inline formatting: bold, italic, font sizes
+- Images, scaled down to fit the screen
+- Basic forms: text fields, checkboxes, submit buttons
+- A tiny CSS subset: font size, alignment, margins — nothing more
+- Local history, bookmarks, downloads, and page saving
+
+**Explicitly out of scope, permanently — not "later," ignored by design:**
+- JavaScript
+- Frames / iframes
+- Video and audio playback
+- Modern CSS (flexbox, grid, animations, media queries, ...)
+- Pixel-perfect fidelity with how a page renders on a modern desktop browser
+
+Pages that depend on the "out of scope" list will render degraded or blank,
+the same way they did on real feature-phone and early-smartphone browsers
+from this era. That's expected behavior, not a bug to chase.
+
+## Architecture & Roadmap
+
+Work is organized into four layers. TLS is deliberately decoupled from
+parsing and rendering — the plan is to prove the parse → layout → render
+pipeline against plain HTTP first, since it's independently testable and
+doesn't need to wait on the hardest problem in the project.
+
+### 1. Transport
+- [x] Plain HTTP client
+- [ ] Redirects and cookies
+- [ ] TLS / HTTPS — see [HTTPS / TLS plan](#https--tls-plan)
+- Compression (gzip) is being sidestepped entirely by not sending
+  `Accept-Encoding` — most servers only compress if asked, and CLDC 1.1 has
+  no `java.util.zip` to decompress with anyway.
+
+### 2. Parsing
+- [ ] UTF-8 → `char` decoding
+- [ ] A tolerant ("tag soup") HTML parser — the real complexity here is
+  handling malformed real-world markup gracefully, not the tag set itself
+- [ ] A minimal CSS parser for the font-size/alignment/margin subset above
+
+### 3. Rendering / UI
+- [ ] Text layout: word wrapping, scrolling, bold/italic/size
+- [ ] Image scaling (J2ME's `Image.createImage(byte[])` already decodes
+  PNG/JPEG natively — this module is scaling logic, not a decoder)
+- [ ] Link hit-testing from the layout pass
+- [ ] Form input handling (text fields, checkboxes) and submit-request
+  building
+
+### 4. App shell
+- [ ] History, bookmarks, downloads, and page saving via MIDP `RecordStore`
+  — mechanically simple, no research risk, can be built in parallel with
+  anything above
+
+## HTTPS / TLS plan
+
+This is the hardest and highest-risk part of the project, so it gets its
+own section.
+
+CLDC 1.1 has no `java.math.BigInteger` and no built-in crypto — there is no
+standard-library HTTPS to fall back on, and no actively-maintained
+CLDC-targeting crypto ecosystem to depend on either. Whatever ships here
+*is* the long-term-maintained version; there's no upstream project to defer
+to. That constraint drives the design:
+
+- **Primitives (AES, SHA-2, RSA/EC big-integer math) vs. protocol
+  (handshake, record layer, cipher negotiation) are architecturally
+  separate.** The math doesn't change over time and is reasonable to adapt
+  from existing prior art — Bouncy Castle's old J2ME/CLDC "Lightweight
+  Crypto API" (MIT-style license) is a plausible source of raw material for
+  this layer. The protocol logic is what needs to survive future TLS
+  versions, so it's implemented directly against the IETF RFCs (TLS 1.2 =
+  [RFC 5246](https://www.rfc-editor.org/rfc/rfc5246)) rather than ported
+  from anyone's implementation — grounding it in a spec document, not a
+  specific codebase, is what should make it possible for a future
+  contributor with zero J2ME background to pick this up decades from now.
+- **One deliberately narrow cipher suite, not a flexible negotiator:**
+  ECDHE (P-256) key exchange + AES-GCM + SHA-256. RSA key exchange is
+  skipped entirely, not just deprioritized — elliptic curve math is both
+  cheaper on constrained CPUs and lighter on constrained heaps than RSA-2048
+  at equivalent security.
+- Rough performance target, based on scaling a sourced ECC benchmark
+  (174-bit curve, ~400ms on a 104MHz ARM7) up to this project's baseline
+  hardware (~235MHz): a P-256 operation should land somewhere around
+  ~175ms — acceptable UX, not a multi-second stall.
+
+## Device & compatibility target
+
+CLDC 1.1 / MIDP 2.0 is the floor, and it's the broadest reasonable one:
+it's the de facto standard that Nokia (S40 and S60), Sony Ericsson,
+Samsung, Motorola, and LG all converged on by the mid-2000s. (BlackBerry OS
+only ever implemented MIDP 2.0 partially, and KaiOS-era "dumbphones" use an
+HTML5 app model rather than J2ME at all — both out of scope.)
+
+The baseline development/test hardware is an early-to-mid Series 40
+feature phone (~200-300MHz ARM9-class CPU, mid-2000s generation) — real
+hardware in hand, not a hypothetical. It's chosen deliberately as the
+*harder* constraint rather than the easiest one: more capable devices, like
+later Asha-platform-era hardware (~1GHz ARM11 class) — also real hardware
+in hand — run the same build comfortably with no special-casing or
+separate build variant required. Targeting the constrained end also reaches
+a far larger and more iconic slice of the S40 install base — and its
+enthusiast/contributor community — than optimizing for premium-tier
+hardware only would.
+
+## Getting Started
+
+### Prerequisites
 
 Install these before running `make setup`:
 
@@ -21,7 +166,7 @@ Install these before running `make setup`:
 
 Detailed Java install instructions: `docs/java-setup.md`
 
-## Quick Start
+### Quick Start
 
 ```bash
 make setup
@@ -30,7 +175,7 @@ make run
 
 `make run` builds the MIDlet and launches it in MicroEmulator.
 
-## Commands
+### Commands
 
 ```bash
 make help   # command list
@@ -79,3 +224,16 @@ Over Bluetooth:
 - `app.jad` — app descriptor (name/version/vendor metadata)
 - `Makefile` — build pipeline
 - `scripts/serve.py` — HTTP server for OTA installs, serving from repo root
+
+As the modules described in [Architecture & Roadmap](#architecture--roadmap)
+land, this layout will grow to reflect them (e.g. separate packages for
+transport, parsing, rendering, and TLS) rather than staying a single file.
+
+## Contributing
+
+There's no formal CONTRIBUTING guide yet, but the short version: you don't
+need to own real feature-phone hardware to contribute. Development and most
+testing happens against the vendored MicroEmulator in `tools/open/` — real
+devices matter for final validation (some bugs, like OS-level network
+permission prompts, only show up there), but aren't required to write or
+review code.
