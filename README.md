@@ -61,17 +61,23 @@ usually die from scope creep.
 
 **In scope:**
 - HTTP and HTTPS
+- Manual URL entry, and back navigation between visited pages
 - Basic HTML: headings, paragraphs, lists, tables, links
 - Simple inline formatting: bold, italic, font sizes
-- Images, scaled down to fit the screen
+- Images (PNG/JPEG), scaled down to fit the screen
 - Basic forms: text fields, checkboxes, submit buttons
 - A tiny CSS subset: font size, alignment, margins — nothing more
+- HTTP authentication (Basic/Digest) for auth-walled pages
 - Local history, bookmarks, downloads, and page saving
 
 **Explicitly out of scope, permanently — not "later," ignored by design:**
 - JavaScript
 - Frames / iframes
 - Video and audio playback
+- Tabbed browsing — one page at a time fits the screen size this targets
+- Animated GIF and SVG — no decoder in CLDC, and disproportionate effort
+  for this device class
+- Right-to-left / complex text shaping (bidi)
 - Modern CSS (flexbox, grid, animations, media queries, ...)
 - Pixel-perfect fidelity with how a page renders on a modern desktop browser
 
@@ -90,6 +96,7 @@ doesn't need to wait on the hardest problem in the project.
 - [x] Plain HTTP client
 - [x] Redirects (301, 302, 303, 307, 308, up to 5 hops)
 - [x] Cookies (session-only, in-memory, name=value pairs per host)
+- [ ] HTTP authentication (Basic/Digest)
 - [ ] TLS / HTTPS — see [HTTPS / TLS plan](#https--tls-plan)
 - Compression (gzip) is being sidestepped entirely by not sending
   `Accept-Encoding` — most servers only compress if asked, and CLDC 1.1 has
@@ -104,6 +111,10 @@ doesn't need to wait on the hardest problem in the project.
 ### 3. Rendering / UI
 - [x] Text layout: word wrapping (including hard-breaking tokens like long
   URLs that don't fit the screen on their own) and scrolling
+- [ ] Go to address: manual URL entry via a MIDP `TextBox`, reusing the
+  existing fetch/render pipeline — no parser dependency, buildable now
+- [ ] Back navigation: return to the previous page via an in-session
+  navigation stack — no parser dependency, buildable now
 - [ ] Bold/italic/size (blocked on the HTML/CSS parser above — there's no
   markup structure to style yet, just a flat decoded string)
 - [ ] Image scaling (J2ME's `Image.createImage(byte[])` already decodes
