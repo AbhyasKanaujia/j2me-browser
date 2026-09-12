@@ -40,6 +40,9 @@ usually die from scope creep.
 - ✅ Live network I/O — the MIDlet fetches `http://info.cern.ch/` over plain
   HTTP on startup and renders the result, proving the transport stack works
   end to end on both emulator and real hardware
+- ✅ Fetched bytes are decoded as UTF-8 and rendered as word-wrapped,
+  scrollable text on screen (raw HTML markup, since there's no HTML parser
+  yet — tags show up literally rather than being stripped/styled)
 - 🚧 Everything else below is planned, not yet built
 
 ## How much of a browser is this?
@@ -80,13 +83,16 @@ doesn't need to wait on the hardest problem in the project.
   no `java.util.zip` to decompress with anyway.
 
 ### 2. Parsing
-- [ ] UTF-8 → `char` decoding
+- [x] UTF-8 → `char` decoding
 - [ ] A tolerant ("tag soup") HTML parser — the real complexity here is
   handling malformed real-world markup gracefully, not the tag set itself
 - [ ] A minimal CSS parser for the font-size/alignment/margin subset above
 
 ### 3. Rendering / UI
-- [ ] Text layout: word wrapping, scrolling, bold/italic/size
+- [x] Text layout: word wrapping (including hard-breaking tokens like long
+  URLs that don't fit the screen on their own) and scrolling
+- [ ] Bold/italic/size (blocked on the HTML/CSS parser above — there's no
+  markup structure to style yet, just a flat decoded string)
 - [ ] Image scaling (J2ME's `Image.createImage(byte[])` already decodes
   PNG/JPEG natively — this module is scaling logic, not a decoder)
 - [ ] Link hit-testing from the layout pass

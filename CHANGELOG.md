@@ -13,6 +13,12 @@ via `MIDlet-Version` in `app.jad`).
   a background thread and shows the response code and byte count on screen,
   proving the network stack end to end. Verified on emulator and real
   hardware.
+- Fetched response bytes are now decoded as UTF-8 and rendered as
+  word-wrapped, scrollable text (UP/DOWN) instead of being discarded after
+  counting. Long unbroken tokens (e.g. URLs in raw `href` attributes) are
+  hard-broken by character since the display has no horizontal scroll.
+  Still shows raw HTML markup as text — no tag-soup parser yet. Verified in
+  MicroEmulator.
 - Full project README: scope, architecture/roadmap, TLS plan.
 - Architecture Decision Records (`docs/adr/`) recording the rationale
   behind foundational, hard-to-reverse decisions: using ADRs at all,
