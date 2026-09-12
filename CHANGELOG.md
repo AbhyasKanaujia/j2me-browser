@@ -22,11 +22,10 @@ via `MIDlet-Version` in `app.jad`).
 - HTTP redirects (301, 302, 303, 307, 308) are now followed automatically,
   up to 5 hops, with `Location` header resolution handled by hand (no
   `java.net.URL` in CLDC 1.1). Verified in MicroEmulator and on real
-  hardware (Asha-tier; floor device still pending).
+  hardware.
 - Session cookies: `Set-Cookie` responses are captured (name=value only) into
   an in-memory, per-host jar and echoed back via `Cookie` on later requests.
-  No persistence across runs. Verified in MicroEmulator and on real hardware
-  (Asha-tier; floor device still pending).
+  No persistence across runs. Verified in MicroEmulator and on real hardware.
 - Full project README: scope, architecture/roadmap, TLS plan.
 - Architecture Decision Records (`docs/adr/`) recording the rationale
   behind foundational, hard-to-reverse decisions: using ADRs at all,
