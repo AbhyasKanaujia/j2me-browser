@@ -1,7 +1,13 @@
 # j2me-browser
 
+[![CI](https://github.com/AbhyasKanaujia/j2me-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/AbhyasKanaujia/j2me-browser/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A from-scratch, self-sufficient web browser for J2ME (MIDP 2.0 / CLDC 1.1)
 feature phones — no proxy, no third-party service, no expiration date.
+
+Project page with install instructions:
+[abhyaskanaujia.github.io/j2me-browser](https://abhyaskanaujia.github.io/j2me-browser/)
 
 ## Table of Contents
 
@@ -16,7 +22,9 @@ feature phones — no proxy, no third-party service, no expiration date.
 - [Toolchain (Pinned)](#toolchain-pinned)
 - [Build Pipeline](#build-pipeline)
 - [Project Layout](#project-layout)
+- [Feature requests & bugs](#feature-requests--bugs)
 - [Contributing](#contributing)
+- [License](#license)
 
 ## About
 
@@ -226,11 +234,19 @@ As the modules described in [Architecture & Roadmap](#architecture--roadmap)
 land, this layout will grow to reflect them (e.g. separate packages for
 transport, parsing, rendering, and TLS) rather than staying a single file.
 
+## Feature requests & bugs
+
+- [Request a feature](https://github.com/AbhyasKanaujia/j2me-browser/issues/new?template=feature_request.yml)
+- [Report a bug](https://github.com/AbhyasKanaujia/j2me-browser/issues/new?template=bug_report.yml)
+
 ## Contributing
 
-There's no formal CONTRIBUTING guide yet, but the short version: you don't
-need to own real feature-phone hardware to contribute. Development and most
-testing happens against the vendored MicroEmulator in `tools/open/` — real
-devices matter for final validation (some bugs, like OS-level network
-permission prompts, only show up there), but aren't required to write or
-review code.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Short version: you don't need to own
+real feature-phone hardware to contribute. Development and most testing
+happens against the vendored MicroEmulator in `tools/open/` — real devices
+matter for final validation (some bugs, like OS-level network permission
+prompts, only show up there), but aren't required to write or review code.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

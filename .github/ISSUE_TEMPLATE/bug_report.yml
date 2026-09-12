@@ -1,0 +1,46 @@
+name: Bug report
+description: Something isn't working right
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Launch the app
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: how-run
+    attributes:
+      label: Where did you run it?
+      options:
+        - MicroEmulator
+        - Real device (Wi-Fi / OTA install)
+        - Real device (Bluetooth install)
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device / emulator and platform
+      placeholder: e.g. MicroEmulator 2.0.0, or Nokia 6300 (S40)
+  - type: input
+    id: version
+    attributes:
+      label: j2me-browser version
+      description: About screen (if present), or the .jad/.jar filename you installed.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output or error message
+      render: shell

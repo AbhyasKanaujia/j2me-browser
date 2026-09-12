@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>j2me-browser</title>
+<meta name="description" content="A from-scratch, self-sufficient web browser for J2ME (MIDP 2.0 / CLDC 1.1) feature phones — no proxy, no third-party service.">
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0; color: #1d1d1f; background: #fff;
+  }
+  @media (prefers-color-scheme: dark) { body { color: #f2f2f2; background: #1c1c1e; } }
+
+  main { max-width: 640px; margin: 0 auto; padding: 64px 24px 48px; text-align: center; }
+
+  h1 { font-size: 32px; font-weight: 700; margin: 0 0 8px; }
+  .tagline { font-size: 17px; color: #6e6e73; margin: 0 0 36px; }
+  @media (prefers-color-scheme: dark) { .tagline { color: #a1a1a6; } }
+
+  .primary-download {
+    display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px;
+    background: #0071e3; color: #fff; text-decoration: none; border-radius: 12px;
+    font-size: 17px; font-weight: 600;
+  }
+  .primary-download:hover { background: #0077ed; }
+
+  .other-downloads { margin-top: 18px; font-size: 14px; color: #6e6e73; }
+  @media (prefers-color-scheme: dark) { .other-downloads { color: #a1a1a6; } }
+  .other-downloads a { color: inherit; text-decoration: underline; }
+
+  .version-note { margin-top: 10px; font-size: 12px; color: #a1a1a6; }
+
+  .status {
+    margin-top: 40px; text-align: left; padding: 16px 20px; border-radius: 12px;
+    background: rgba(0,0,0,.04); font-size: 14px;
+  }
+  @media (prefers-color-scheme: dark) { .status { background: rgba(255,255,255,.06); } }
+  .status h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #6e6e73; margin: 0 0 10px; }
+  @media (prefers-color-scheme: dark) { .status h2 { color: #a1a1a6; } }
+  .status ul { margin: 0; padding-left: 20px; }
+  .status li { margin-bottom: 6px; }
+
+  section.about { text-align: left; margin-top: 40px; padding-top: 40px; border-top: 1px solid #e2e2e7; }
+  @media (prefers-color-scheme: dark) { section.about { border-color: #3a3a3c; } }
+  section.about h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #6e6e73; margin: 0 0 12px; }
+  @media (prefers-color-scheme: dark) { section.about h2 { color: #a1a1a6; } }
+  section.about ul { margin: 0; padding-left: 20px; }
+  section.about li { margin-bottom: 8px; }
+  code {
+    background: rgba(0,0,0,.06); padding: 2px 6px; border-radius: 4px;
+    font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) { code { background: rgba(255,255,255,.1); } }
+
+  .links { margin-top: 40px; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; font-size: 14px; }
+  .links a { color: #0071e3; text-decoration: none; }
+  .links a:hover { text-decoration: underline; }
+
+  footer { text-align: center; padding: 24px; font-size: 12px; color: #a1a1a6; }
+</style>
+</head>
+<body>
+<main>
+  <h1>j2me-browser</h1>
+  <p class="tagline">A from-scratch, self-sufficient web browser for J2ME feature phones — no proxy, no third-party service, no expiration date.</p>
+
+  <a class="primary-download" href="https://github.com/AbhyasKanaujia/j2me-browser/releases/latest/download/j2me-browser.jad">
+    Install on your phone (OTA)
+  </a>
+
+  <div class="other-downloads">
+    Open that link in your phone's browser to install directly, or
+    <a href="https://github.com/AbhyasKanaujia/j2me-browser/releases/latest/download/j2me-browser.jar">download the .jar</a>
+    to send over Bluetooth instead.
+  </div>
+  <div class="version-note"><a href="https://github.com/AbhyasKanaujia/j2me-browser/releases/latest">See the latest release &amp; changelog &rarr;</a></div>
+
+  <div class="status">
+    <h2>Status</h2>
+    <ul>
+      <li>Build/install pipeline (compile &rarr; preverify &rarr; package &rarr; OTA/Bluetooth install)</li>
+      <li>Live HTTP fetch, UTF-8 decoding, and word-wrapped scrollable text rendering &mdash; proven end to end on emulator and real hardware</li>
+      <li>Everything else (HTML parsing, images, forms, HTTPS) is planned, not yet built &mdash; see the README for the full roadmap</li>
+    </ul>
+  </div>
+
+  <section class="about">
+    <h2>What it does differently</h2>
+    <ul>
+      <li>Most feature-phone "browsers" of this era (Opera Mini, UC Browser) proxied every request through a company-run server. This one doesn't &mdash; HTTP(S), HTML parsing, and rendering all run on-device.</li>
+      <li>Targets CLDC 1.1 / MIDP 2.0, the broadest baseline Nokia, Sony Ericsson, Samsung, Motorola, and LG all converged on by the mid-2000s.</li>
+      <li>The rendering bar is intentionally modest &mdash; think a basic 2011-era mobile browser, not a modern desktop engine.</li>
+    </ul>
+  </section>
+
+  <div class="links">
+    <a href="https://github.com/AbhyasKanaujia/j2me-browser">Source on GitHub</a>
+    <a href="https://github.com/AbhyasKanaujia/j2me-browser/issues/new?template=bug_report.yml">Report a bug</a>
+    <a href="https://github.com/AbhyasKanaujia/j2me-browser/issues/new?template=feature_request.yml">Request a feature</a>
+  </div>
+</main>
+<footer>MIT licensed.</footer>
+</body>
+</html>
