@@ -26,7 +26,11 @@ public class MainMIDlet extends MIDlet implements CommandListener {
     private final Command goToCommand;
     private final Command goCommand;
     private final Command cancelCommand;
+    private final Command backCommand;
+    private final Command forwardCommand;
     private final Hashtable cookieJars = new Hashtable();
+    private final Vector backStack = new Vector();
+    private final Vector forwardStack = new Vector();
     private boolean fetchStarted;
     private String currentUrl = FETCH_URL;
 
@@ -37,6 +41,8 @@ public class MainMIDlet extends MIDlet implements CommandListener {
         goToCommand = new Command("Go to...", Command.SCREEN, 1);
         goCommand = new Command("Go", Command.OK, 1);
         cancelCommand = new Command("Cancel", Command.CANCEL, 1);
+        backCommand = new Command("Back", Command.BACK, 1);
+        forwardCommand = new Command("Forward", Command.SCREEN, 1);
         canvas.addCommand(exitCommand);
         canvas.addCommand(goToCommand);
         canvas.setCommandListener(this);
@@ -264,10 +270,65 @@ public class MainMIDlet extends MIDlet implements CommandListener {
             String url = normalizeUrl(((TextBox) displayable).getString());
             display.setCurrent(canvas);
             if (url != null) {
+                pushBack(currentUrl);
+                clearForward();
                 startFetch(url);
             }
         } else if (command == cancelCommand) {
             display.setCurrent(canvas);
+        } else if (command == backCommand) {
+            if (!backStack.isEmpty()) {
+                String previous = popBack();
+                pushForward(currentUrl);
+                startFetch(previous);
+            }
+        } else if (command == forwardCommand) {
+            if (!forwardStack.isEmpty()) {
+                String next = popForward();
+                pushBack(currentUrl);
+                startFetch(next);
+            }
+        }
+    }
+
+    private void pushBack(String url) {
+        boolean wasEmpty = backStack.isEmpty();
+        backStack.addElement(url);
+        if (wasEmpty) {
+            canvas.addCommand(backCommand);
+        }
+    }
+
+    private String popBack() {
+        String url = (String) backStack.lastElement();
+        backStack.removeElementAt(backStack.size() - 1);
+        if (backStack.isEmpty()) {
+            canvas.removeCommand(backCommand);
+        }
+        return url;
+    }
+
+    private void pushForward(String url) {
+        boolean wasEmpty = forwardStack.isEmpty();
+        forwardStack.addElement(url);
+        if (wasEmpty) {
+            canvas.addCommand(forwardCommand);
+        }
+    }
+
+    private String popForward() {
+        String url = (String) forwardStack.lastElement();
+        forwardStack.removeElementAt(forwardStack.size() - 1);
+        if (forwardStack.isEmpty()) {
+            canvas.removeCommand(forwardCommand);
+        }
+        return url;
+    }
+
+    private void clearForward() {
+        if (!forwardStack.isEmpty()) {
+            forwardStack.removeAllElements();
+            canvas.removeCommand(forwardCommand);
         }
     }
 

@@ -8,6 +8,11 @@ via `MIDlet-Version` in `app.jad`).
 
 ## [Unreleased]
 
+### Added
+- Back/Forward navigation: `Back` and `Forward` commands walk an in-session
+  history stack, re-fetching each page rather than caching content. Going
+  to a new address clears any forward history. Verified in MicroEmulator.
+
 ## [0.2.0] - 2026-09-12
 
 ### Added

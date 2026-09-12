@@ -57,6 +57,7 @@ usually die from scope creep.
   persistence across runs)
 - ✅ Go to address — visit any URL via a "Go to..." command, not just the
   startup page
+- ✅ Back/Forward navigation through the in-session history
 - 🚧 Everything else below is planned, not yet built
 
 ## How much of a browser is this?
@@ -115,8 +116,8 @@ doesn't need to wait on the hardest problem in the project.
   URLs that don't fit the screen on their own) and scrolling
 - [x] Go to address: manual URL entry via a MIDP `TextBox`, reusing the
   existing fetch/render pipeline
-- [ ] Back navigation: return to the previous page via an in-session
-  navigation stack — no parser dependency, buildable now
+- [x] Back/Forward navigation via an in-session history stack (re-fetches
+  each page rather than caching content)
 - [ ] Bold/italic/size (blocked on the HTML/CSS parser above — there's no
   markup structure to style yet, just a flat decoded string)
 - [ ] Image scaling (J2ME's `Image.createImage(byte[])` already decodes
