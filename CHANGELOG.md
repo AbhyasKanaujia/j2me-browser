@@ -12,6 +12,13 @@ via `MIDlet-Version` in `app.jad`).
 - Back/Forward navigation: `Back` and `Forward` commands walk an in-session
   history stack, re-fetching each page rather than caching content. Going
   to a new address clears any forward history. Verified in MicroEmulator.
+- HTML tags are now stripped to plain readable text instead of showing raw
+  markup, with `<script>`/`<style>` content dropped and common entities
+  (`&amp;`, `&copy;`, `&mdash;`, etc.) decoded. No block/paragraph structure
+  yet -- that's layout, a later stage. Verified in MicroEmulator.
+- Dropped the "HTTP 200 - N bytes" status line for successful page loads --
+  it was only ever useful for proving the network stack worked, and now
+  just eats screen space. Still shown for non-2xx responses and failures.
 
 ## [0.2.0] - 2026-09-12
 

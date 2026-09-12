@@ -48,9 +48,9 @@ usually die from scope creep.
 - ✅ Live network I/O — the MIDlet fetches `http://info.cern.ch/` over plain
   HTTP on startup and renders the result, proving the transport stack works
   end to end on both emulator and real hardware
-- ✅ Fetched bytes are decoded as UTF-8 and rendered as word-wrapped,
-  scrollable text on screen (raw HTML markup, since there's no HTML parser
-  yet — tags show up literally rather than being stripped/styled)
+- ✅ Fetched bytes are decoded as UTF-8, tags stripped to plain text
+  (`<script>`/`<style>` dropped, entities decoded), and rendered as
+  word-wrapped, scrollable text — no block/paragraph structure yet
 - ✅ HTTP redirects (301, 302, 303, 307, 308) are followed automatically,
   up to 5 hops
 - ✅ Session cookies (`Set-Cookie`/`Cookie`, in-memory, per-host, no
@@ -107,8 +107,13 @@ doesn't need to wait on the hardest problem in the project.
 
 ### 2. Parsing
 - [x] UTF-8 → `char` decoding
-- [ ] A tolerant ("tag soup") HTML parser — the real complexity here is
-  handling malformed real-world markup gracefully, not the tag set itself
+- [ ] Tolerant ("tag soup") HTML parsing, built in stages:
+  - [x] Strip tags to plain readable text (`<script>`/`<style>` dropped,
+    entities decoded) — no block/paragraph structure preserved yet
+  - [ ] Recognize block-level structure (paragraphs, headings, lists) for
+    layout
+  - [ ] Inline formatting (bold, italic, size)
+  - [ ] Links, with positions, for hit-testing
 - [ ] A minimal CSS parser for the font-size/alignment/margin subset above
 
 ### 3. Rendering / UI
@@ -118,11 +123,11 @@ doesn't need to wait on the hardest problem in the project.
   existing fetch/render pipeline
 - [x] Back/Forward navigation via an in-session history stack (re-fetches
   each page rather than caching content)
-- [ ] Bold/italic/size (blocked on the HTML/CSS parser above — there's no
-  markup structure to style yet, just a flat decoded string)
+- [ ] Bold/italic/size — consumes inline-formatting spans from the Parsing
+  stages above
 - [ ] Image scaling (J2ME's `Image.createImage(byte[])` already decodes
   PNG/JPEG natively — this module is scaling logic, not a decoder)
-- [ ] Link hit-testing from the layout pass
+- [ ] Link hit-testing — consumes link spans from the Parsing stages above
 - [ ] Form input handling (text fields, checkboxes) and submit-request
   building
 

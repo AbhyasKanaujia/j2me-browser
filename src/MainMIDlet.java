@@ -127,11 +127,14 @@ public class MainMIDlet extends MIDlet implements CommandListener {
                     buffer.write(chunk, 0, read);
                 }
                 responseBytes = buffer.toByteArray();
-                String redirectNote = (redirects > 0)
-                        ? (" (after " + redirects + " redirect" + (redirects == 1 ? "" : "s") + ")")
-                        : "";
-                status = "HTTP " + responseCode + redirectNote + " - " + responseBytes.length
-                        + " bytes from " + url;
+                if (responseCode >= 200 && responseCode < 300) {
+                    status = "";
+                } else {
+                    String redirectNote = (redirects > 0)
+                            ? (" (after " + redirects + " redirect" + (redirects == 1 ? "" : "s") + ")")
+                            : "";
+                    status = "HTTP " + responseCode + redirectNote + " from " + url;
+                }
             } catch (Exception e) {
                 status = "Fetch failed: " + e;
             } finally {
@@ -156,11 +159,150 @@ public class MainMIDlet extends MIDlet implements CommandListener {
             } catch (Exception e) {
                 pageText = new String(responseBytes);
             }
-            canvas.setPageText(pageText);
+            canvas.setPageText(stripTags(pageText));
         } else {
             canvas.clearContent();
         }
         canvas.repaint();
+    }
+
+    // Strips tags down to plain text: no block/paragraph structure preserved yet
+    // (that's layout, a later stage), just tag-soup -> readable text. <script> and
+    // <style> element content is dropped entirely rather than shown as text.
+    private static String stripTags(String html) {
+        StringBuffer out = new StringBuffer();
+        int len = html.length();
+        int i = 0;
+        String skipUntil = null;
+        while (i < len) {
+            char c = html.charAt(i);
+            if (c != '<') {
+                if (skipUntil == null) {
+                    out.append(c);
+                }
+                i++;
+                continue;
+            }
+            if (html.regionMatches(true, i, "<!--", 0, 4)) {
+                int end = html.indexOf("-->", i + 4);
+                i = (end < 0) ? len : end + 3;
+                continue;
+            }
+            int close = html.indexOf('>', i + 1);
+            if (close < 0) {
+                break;
+            }
+            String tagContent = html.substring(i + 1, close);
+            boolean isClosing = tagContent.startsWith("/");
+            String name = tagName(isClosing ? tagContent.substring(1) : tagContent);
+            if (skipUntil != null) {
+                if (isClosing && name.equals(skipUntil)) {
+                    skipUntil = null;
+                }
+            } else if (!isClosing && (name.equals("script") || name.equals("style"))) {
+                skipUntil = name;
+            } else {
+                out.append(' ');
+            }
+            i = close + 1;
+        }
+        return decodeEntities(out.toString());
+    }
+
+    private static String tagName(String tagContent) {
+        int i = 0;
+        int len = tagContent.length();
+        while (i < len) {
+            char c = tagContent.charAt(i);
+            if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '/' || c == '>') {
+                break;
+            }
+            i++;
+        }
+        return tagContent.substring(0, i).toLowerCase();
+    }
+
+    private static String decodeEntities(String text) {
+        if (text.indexOf('&') < 0) {
+            return text;
+        }
+        StringBuffer out = new StringBuffer();
+        int len = text.length();
+        int i = 0;
+        while (i < len) {
+            char c = text.charAt(i);
+            if (c != '&') {
+                out.append(c);
+                i++;
+                continue;
+            }
+            int semi = text.indexOf(';', i + 1);
+            String replacement = (semi < 0 || semi - i > 10) ? null : decodeEntity(text.substring(i + 1, semi));
+            if (replacement == null) {
+                out.append(c);
+                i++;
+            } else {
+                out.append(replacement);
+                i = semi + 1;
+            }
+        }
+        return out.toString();
+    }
+
+    private static final Hashtable NAMED_ENTITIES = buildNamedEntities();
+
+    private static Hashtable buildNamedEntities() {
+        Hashtable table = new Hashtable();
+        table.put("amp", "&");
+        table.put("lt", "<");
+        table.put("gt", ">");
+        table.put("quot", "\"");
+        table.put("apos", "'");
+        table.put("nbsp", " ");
+        table.put("copy", String.valueOf((char) 0x00A9));
+        table.put("reg", String.valueOf((char) 0x00AE));
+        table.put("trade", String.valueOf((char) 0x2122));
+        table.put("mdash", String.valueOf((char) 0x2014));
+        table.put("ndash", String.valueOf((char) 0x2013));
+        table.put("hellip", String.valueOf((char) 0x2026));
+        table.put("lsquo", String.valueOf((char) 0x2018));
+        table.put("rsquo", String.valueOf((char) 0x2019));
+        table.put("ldquo", String.valueOf((char) 0x201C));
+        table.put("rdquo", String.valueOf((char) 0x201D));
+        table.put("middot", String.valueOf((char) 0x00B7));
+        table.put("bull", String.valueOf((char) 0x2022));
+        table.put("deg", String.valueOf((char) 0x00B0));
+        table.put("euro", String.valueOf((char) 0x20AC));
+        table.put("pound", String.valueOf((char) 0x00A3));
+        table.put("yen", String.valueOf((char) 0x00A5));
+        table.put("cent", String.valueOf((char) 0x00A2));
+        table.put("times", String.valueOf((char) 0x00D7));
+        table.put("divide", String.valueOf((char) 0x00F7));
+        table.put("shy", "");
+        return table;
+    }
+
+    private static String decodeEntity(String entity) {
+        String named = (String) NAMED_ENTITIES.get(entity);
+        if (named != null) {
+            return named;
+        }
+        if (entity.length() > 1 && entity.charAt(0) == '#') {
+            try {
+                int codepoint;
+                if (entity.length() > 2 && (entity.charAt(1) == 'x' || entity.charAt(1) == 'X')) {
+                    codepoint = Integer.parseInt(entity.substring(2), 16);
+                } else {
+                    codepoint = Integer.parseInt(entity.substring(1));
+                }
+                if (codepoint > 0 && codepoint < 0x10000) {
+                    return String.valueOf((char) codepoint);
+                }
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static boolean isRedirect(int responseCode) {
