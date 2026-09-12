@@ -14,6 +14,7 @@ import java.util.Vector;
 
 public class MainMIDlet extends MIDlet implements CommandListener {
     private static final String FETCH_URL = "http://info.cern.ch/";
+    private static final int MAX_REDIRECTS = 5;
 
     private final Display display;
     private final BrowserCanvas canvas;
@@ -41,34 +42,67 @@ public class MainMIDlet extends MIDlet implements CommandListener {
     }
 
     private void fetch() {
-        HttpConnection connection = null;
-        InputStream in = null;
+        String url = FETCH_URL;
         String status;
         byte[] responseBytes = null;
-        try {
-            connection = (HttpConnection) Connector.open(FETCH_URL);
-            int responseCode = connection.getResponseCode();
-            in = connection.openInputStream();
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            byte[] chunk = new byte[256];
-            int read;
-            while ((read = in.read(chunk)) != -1) {
-                buffer.write(chunk, 0, read);
-            }
-            responseBytes = buffer.toByteArray();
-            status = "HTTP " + responseCode + " - " + responseBytes.length + " bytes from " + FETCH_URL;
-        } catch (Exception e) {
-            status = "Fetch failed: " + e;
-        } finally {
+        int redirects = 0;
+
+        fetchLoop:
+        while (true) {
+            HttpConnection connection = null;
+            InputStream in = null;
             try {
-                if (in != null) in.close();
-            } catch (Exception ignored) {
+                connection = (HttpConnection) Connector.open(url);
+                int responseCode = connection.getResponseCode();
+
+                if (isRedirect(responseCode)) {
+                    String location = connection.getHeaderField("Location");
+                    if (location == null || location.length() == 0) {
+                        status = "HTTP " + responseCode + " redirect with no Location header from " + url;
+                        break fetchLoop;
+                    }
+                    if (redirects >= MAX_REDIRECTS) {
+                        status = "Too many redirects (stopped after " + redirects + " at " + url + ")";
+                        break fetchLoop;
+                    }
+                    String nextUrl = resolveUrl(url, location);
+                    if (nextUrl == null) {
+                        status = "Redirected to unsupported URL: " + location;
+                        break fetchLoop;
+                    }
+                    redirects++;
+                    url = nextUrl;
+                    continue fetchLoop;
+                }
+
+                in = connection.openInputStream();
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                byte[] chunk = new byte[256];
+                int read;
+                while ((read = in.read(chunk)) != -1) {
+                    buffer.write(chunk, 0, read);
+                }
+                responseBytes = buffer.toByteArray();
+                String redirectNote = (redirects > 0)
+                        ? (" (after " + redirects + " redirect" + (redirects == 1 ? "" : "s") + ")")
+                        : "";
+                status = "HTTP " + responseCode + redirectNote + " - " + responseBytes.length
+                        + " bytes from " + url;
+            } catch (Exception e) {
+                status = "Fetch failed: " + e;
+            } finally {
+                try {
+                    if (in != null) in.close();
+                } catch (Exception ignored) {
+                }
+                try {
+                    if (connection != null) connection.close();
+                } catch (Exception ignored) {
+                }
             }
-            try {
-                if (connection != null) connection.close();
-            } catch (Exception ignored) {
-            }
+            break fetchLoop;
         }
+
         canvas.setStatus(status);
         if (responseBytes != null) {
             String pageText;
@@ -80,6 +114,41 @@ public class MainMIDlet extends MIDlet implements CommandListener {
             canvas.setPageText(pageText);
         }
         canvas.repaint();
+    }
+
+    private static boolean isRedirect(int responseCode) {
+        return responseCode == 301 || responseCode == 302 || responseCode == 303
+                || responseCode == 307 || responseCode == 308;
+    }
+
+    // CLDC 1.1 has no java.net.URL, so relative Location headers are resolved by hand.
+    // Handles absolute URLs, protocol-relative ("//host/path"), and absolute-path
+    // ("/path") locations -- the common cases for server-issued redirects. Locations
+    // relative to the current path (e.g. "next.html") are resolved against the
+    // current path's directory.
+    private static String resolveUrl(String base, String location) {
+        if (location.indexOf("://") >= 0) {
+            return location;
+        }
+        int schemeEnd = base.indexOf("://");
+        if (schemeEnd < 0) {
+            return null;
+        }
+        String scheme = base.substring(0, schemeEnd);
+        int authorityStart = schemeEnd + 3;
+        int pathStart = base.indexOf('/', authorityStart);
+        String authority = (pathStart < 0) ? base.substring(authorityStart) : base.substring(authorityStart, pathStart);
+        String basePath = (pathStart < 0) ? "/" : base.substring(pathStart);
+
+        if (location.startsWith("//")) {
+            return scheme + ":" + location;
+        }
+        if (location.startsWith("/")) {
+            return scheme + "://" + authority + location;
+        }
+        int lastSlash = basePath.lastIndexOf('/');
+        String baseDir = (lastSlash >= 0) ? basePath.substring(0, lastSlash + 1) : "/";
+        return scheme + "://" + authority + baseDir + location;
     }
 
     public void pauseApp() {

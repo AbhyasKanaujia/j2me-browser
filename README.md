@@ -51,6 +51,8 @@ usually die from scope creep.
 - ✅ Fetched bytes are decoded as UTF-8 and rendered as word-wrapped,
   scrollable text on screen (raw HTML markup, since there's no HTML parser
   yet — tags show up literally rather than being stripped/styled)
+- ✅ HTTP redirects (301, 302, 303, 307, 308) are followed automatically,
+  up to 5 hops
 - 🚧 Everything else below is planned, not yet built
 
 ## How much of a browser is this?
@@ -84,7 +86,8 @@ doesn't need to wait on the hardest problem in the project.
 
 ### 1. Transport
 - [x] Plain HTTP client
-- [ ] Redirects and cookies
+- [x] Redirects (301, 302, 303, 307, 308, up to 5 hops)
+- [ ] Cookies
 - [ ] TLS / HTTPS — see [HTTPS / TLS plan](#https--tls-plan)
 - Compression (gzip) is being sidestepped entirely by not sending
   `Accept-Encoding` — most servers only compress if asked, and CLDC 1.1 has
