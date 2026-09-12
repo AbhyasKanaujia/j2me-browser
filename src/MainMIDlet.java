@@ -10,6 +10,8 @@ import javax.microedition.lcdui.Canvas;
 import javax.microedition.midlet.MIDlet;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.Enumeration;
+import java.util.Hashtable;
 import java.util.Vector;
 
 public class MainMIDlet extends MIDlet implements CommandListener {
@@ -19,6 +21,7 @@ public class MainMIDlet extends MIDlet implements CommandListener {
     private final Display display;
     private final BrowserCanvas canvas;
     private final Command exitCommand;
+    private final Hashtable cookieJars = new Hashtable();
     private boolean fetchStarted;
 
     public MainMIDlet() {
@@ -53,7 +56,9 @@ public class MainMIDlet extends MIDlet implements CommandListener {
             InputStream in = null;
             try {
                 connection = (HttpConnection) Connector.open(url);
+                applyCookies(connection, url);
                 int responseCode = connection.getResponseCode();
+                storeCookie(url, connection.getHeaderField("Set-Cookie"));
 
                 if (isRedirect(responseCode)) {
                     String location = connection.getHeaderField("Location");
@@ -149,6 +154,63 @@ public class MainMIDlet extends MIDlet implements CommandListener {
         int lastSlash = basePath.lastIndexOf('/');
         String baseDir = (lastSlash >= 0) ? basePath.substring(0, lastSlash + 1) : "/";
         return scheme + "://" + authority + baseDir + location;
+    }
+
+    private static String authorityOf(String url) {
+        int schemeEnd = url.indexOf("://");
+        if (schemeEnd < 0) {
+            return url;
+        }
+        int authorityStart = schemeEnd + 3;
+        int pathStart = url.indexOf('/', authorityStart);
+        return (pathStart < 0) ? url.substring(authorityStart) : url.substring(authorityStart, pathStart);
+    }
+
+    // In-memory, per-host, session-only cookie jar: just name=value pairs, no
+    // Domain/Path/Expires/Secure attribute handling and no persistence across runs.
+    // Keeping it this narrow is deliberate -- full RFC 6265 semantics are out of
+    // scope for what this milestone needs.
+    private void applyCookies(HttpConnection connection, String url) throws java.io.IOException {
+        Hashtable jar = (Hashtable) cookieJars.get(authorityOf(url));
+        if (jar == null || jar.isEmpty()) {
+            return;
+        }
+        StringBuffer header = new StringBuffer();
+        Enumeration names = jar.keys();
+        while (names.hasMoreElements()) {
+            String name = (String) names.nextElement();
+            if (header.length() > 0) {
+                header.append("; ");
+            }
+            header.append(name).append('=').append((String) jar.get(name));
+        }
+        connection.setRequestProperty("Cookie", header.toString());
+    }
+
+    // Only reads the first Set-Cookie header -- servers that set multiple cookies
+    // on one response beyond the first are outside this milestone's scope.
+    private void storeCookie(String url, String setCookieHeader) {
+        if (setCookieHeader == null || setCookieHeader.length() == 0) {
+            return;
+        }
+        int semicolon = setCookieHeader.indexOf(';');
+        String pair = (semicolon < 0) ? setCookieHeader : setCookieHeader.substring(0, semicolon);
+        int equals = pair.indexOf('=');
+        if (equals <= 0) {
+            return;
+        }
+        String name = pair.substring(0, equals).trim();
+        String value = pair.substring(equals + 1).trim();
+        if (name.length() == 0) {
+            return;
+        }
+        String host = authorityOf(url);
+        Hashtable jar = (Hashtable) cookieJars.get(host);
+        if (jar == null) {
+            jar = new Hashtable();
+            cookieJars.put(host, jar);
+        }
+        jar.put(name, value);
     }
 
     public void pauseApp() {

@@ -28,6 +28,16 @@ via `MIDlet-Version` in `app.jad`).
   redirect case desktop Java's `HttpURLConnection` — what MicroEmulator
   wraps — won't silently auto-follow on its own, so it actually exercises
   this code path rather than masking it.
+- Session cookies: `Set-Cookie` responses are captured (name=value only, no
+  Domain/Path/Expires/Secure attribute parsing) into an in-memory, per-host
+  jar and echoed back via `Cookie` on later requests to the same host.
+  Nothing persists across MIDlet runs. Verified in MicroEmulator with a
+  temporary two-fetch test harness (one request that sets a cookie via a
+  direct 200 response, a second that echoes back whatever cookie it
+  received) — needed because MicroEmulator's `HttpConnection` silently
+  auto-follows same-protocol redirects, which would otherwise hide the
+  `Set-Cookie` header on a redirect-based test the same way it masked the
+  redirect-following code earlier.
 - Full project README: scope, architecture/roadmap, TLS plan.
 - Architecture Decision Records (`docs/adr/`) recording the rationale
   behind foundational, hard-to-reverse decisions: using ADRs at all,

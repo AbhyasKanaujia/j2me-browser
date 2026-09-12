@@ -53,6 +53,8 @@ usually die from scope creep.
   yet — tags show up literally rather than being stripped/styled)
 - ✅ HTTP redirects (301, 302, 303, 307, 308) are followed automatically,
   up to 5 hops
+- ✅ Session cookies (`Set-Cookie`/`Cookie`, in-memory, per-host, no
+  persistence across runs)
 - 🚧 Everything else below is planned, not yet built
 
 ## How much of a browser is this?
@@ -87,7 +89,7 @@ doesn't need to wait on the hardest problem in the project.
 ### 1. Transport
 - [x] Plain HTTP client
 - [x] Redirects (301, 302, 303, 307, 308, up to 5 hops)
-- [ ] Cookies
+- [x] Cookies (session-only, in-memory, name=value pairs per host)
 - [ ] TLS / HTTPS — see [HTTPS / TLS plan](#https--tls-plan)
 - Compression (gzip) is being sidestepped entirely by not sending
   `Accept-Encoding` — most servers only compress if asked, and CLDC 1.1 has
