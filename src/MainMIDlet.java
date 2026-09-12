@@ -7,6 +7,8 @@ import javax.microedition.lcdui.Displayable;
 import javax.microedition.lcdui.Font;
 import javax.microedition.lcdui.Graphics;
 import javax.microedition.lcdui.Canvas;
+import javax.microedition.lcdui.TextBox;
+import javax.microedition.lcdui.TextField;
 import javax.microedition.midlet.MIDlet;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -21,14 +23,22 @@ public class MainMIDlet extends MIDlet implements CommandListener {
     private final Display display;
     private final BrowserCanvas canvas;
     private final Command exitCommand;
+    private final Command goToCommand;
+    private final Command goCommand;
+    private final Command cancelCommand;
     private final Hashtable cookieJars = new Hashtable();
     private boolean fetchStarted;
+    private String currentUrl = FETCH_URL;
 
     public MainMIDlet() {
         display = Display.getDisplay(this);
         canvas = new BrowserCanvas();
         exitCommand = new Command("Exit", Command.EXIT, 1);
+        goToCommand = new Command("Go to...", Command.SCREEN, 1);
+        goCommand = new Command("Go", Command.OK, 1);
+        cancelCommand = new Command("Cancel", Command.CANCEL, 1);
         canvas.addCommand(exitCommand);
+        canvas.addCommand(goToCommand);
         canvas.setCommandListener(this);
     }
 
@@ -36,16 +46,39 @@ public class MainMIDlet extends MIDlet implements CommandListener {
         display.setCurrent(canvas);
         if (!fetchStarted) {
             fetchStarted = true;
-            new Thread(new Runnable() {
-                public void run() {
-                    fetch();
-                }
-            }).start();
+            startFetch(FETCH_URL);
         }
     }
 
-    private void fetch() {
-        String url = FETCH_URL;
+    private void openAddressBar() {
+        TextBox box = new TextBox("Go to address", currentUrl, 256, TextField.URL);
+        box.addCommand(goCommand);
+        box.addCommand(cancelCommand);
+        box.setCommandListener(this);
+        display.setCurrent(box);
+    }
+
+    private static String normalizeUrl(String input) {
+        String trimmed = input.trim();
+        if (trimmed.length() == 0) {
+            return null;
+        }
+        if (trimmed.indexOf("://") < 0) {
+            return "http://" + trimmed;
+        }
+        return trimmed;
+    }
+
+    private void startFetch(final String url) {
+        new Thread(new Runnable() {
+            public void run() {
+                fetch(url);
+            }
+        }).start();
+    }
+
+    private void fetch(String startUrl) {
+        String url = startUrl;
         String status;
         byte[] responseBytes = null;
         int redirects = 0;
@@ -108,6 +141,7 @@ public class MainMIDlet extends MIDlet implements CommandListener {
             break fetchLoop;
         }
 
+        currentUrl = url;
         canvas.setStatus(status);
         if (responseBytes != null) {
             String pageText;
@@ -117,6 +151,8 @@ public class MainMIDlet extends MIDlet implements CommandListener {
                 pageText = new String(responseBytes);
             }
             canvas.setPageText(pageText);
+        } else {
+            canvas.clearContent();
         }
         canvas.repaint();
     }
@@ -222,6 +258,16 @@ public class MainMIDlet extends MIDlet implements CommandListener {
     public void commandAction(Command command, Displayable displayable) {
         if (command == exitCommand) {
             notifyDestroyed();
+        } else if (command == goToCommand) {
+            openAddressBar();
+        } else if (command == goCommand) {
+            String url = normalizeUrl(((TextBox) displayable).getString());
+            display.setCurrent(canvas);
+            if (url != null) {
+                startFetch(url);
+            }
+        } else if (command == cancelCommand) {
+            display.setCurrent(canvas);
         }
     }
 
@@ -244,6 +290,12 @@ public class MainMIDlet extends MIDlet implements CommandListener {
             this.lines = wrap(text, getWidth() - 4, bodyFont);
             this.scrollOffset = 0;
             this.hasContent = true;
+        }
+
+        void clearContent() {
+            this.lines = new Vector();
+            this.scrollOffset = 0;
+            this.hasContent = false;
         }
 
         private static boolean isSpace(char c) {

@@ -8,6 +8,8 @@ via `MIDlet-Version` in `app.jad`).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-12
+
 ### Added
 - Live HTTP fetch on startup: the MIDlet requests `http://info.cern.ch/` on
   a background thread and shows the response code and byte count on screen,
@@ -26,6 +28,11 @@ via `MIDlet-Version` in `app.jad`).
 - Session cookies: `Set-Cookie` responses are captured (name=value only) into
   an in-memory, per-host jar and echoed back via `Cookie` on later requests.
   No persistence across runs. Verified in MicroEmulator and on real hardware.
+- Go to address: a "Go to..." command opens a URL entry screen and reuses
+  the existing fetch/render pipeline, so the MIDlet can now visit any
+  address, not just the hardcoded startup URL. Also fixes stale page
+  content lingering on screen after a failed fetch. Verified in
+  MicroEmulator and on real hardware.
 - Full project README: scope, architecture/roadmap, TLS plan.
 - Architecture Decision Records (`docs/adr/`) recording the rationale
   behind foundational, hard-to-reverse decisions: using ADRs at all,

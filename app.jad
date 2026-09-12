@@ -1,10 +1,10 @@
 MIDlet-Name: J2ME Browser
-MIDlet-Version: 0.1.0
+MIDlet-Version: 0.2.0
 MIDlet-Vendor: j2me-browser
 MIDlet-1: J2ME Browser,,MainMIDlet
-MIDlet-Description: A web browser for J2ME (MIDP 2.0 / CLDC 1.1) feature phones. This build proves out a live HTTP fetch.
+MIDlet-Description: A web browser for J2ME (MIDP 2.0 / CLDC 1.1) feature phones. Fetches pages over HTTP with redirects and cookies, and lets you go to any address.
 MicroEdition-Configuration: CLDC-1.1
 MicroEdition-Profile: MIDP-2.0
 MIDlet-Permissions: javax.microedition.io.Connector.http
 MIDlet-Jar-URL: dist/app.jar
-MIDlet-Jar-Size: 6916
+MIDlet-Jar-Size: 7542

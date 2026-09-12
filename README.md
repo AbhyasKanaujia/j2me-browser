@@ -55,6 +55,8 @@ usually die from scope creep.
   up to 5 hops
 - ✅ Session cookies (`Set-Cookie`/`Cookie`, in-memory, per-host, no
   persistence across runs)
+- ✅ Go to address — visit any URL via a "Go to..." command, not just the
+  startup page
 - 🚧 Everything else below is planned, not yet built
 
 ## How much of a browser is this?
@@ -111,8 +113,8 @@ doesn't need to wait on the hardest problem in the project.
 ### 3. Rendering / UI
 - [x] Text layout: word wrapping (including hard-breaking tokens like long
   URLs that don't fit the screen on their own) and scrolling
-- [ ] Go to address: manual URL entry via a MIDP `TextBox`, reusing the
-  existing fetch/render pipeline — no parser dependency, buildable now
+- [x] Go to address: manual URL entry via a MIDP `TextBox`, reusing the
+  existing fetch/render pipeline
 - [ ] Back navigation: return to the previous page via an in-session
   navigation stack — no parser dependency, buildable now
 - [ ] Bold/italic/size (blocked on the HTML/CSS parser above — there's no
