@@ -35,6 +35,14 @@ via `MIDlet-Version` in `app.jad`).
   (bold plus a larger size) now render styled instead of as plain text,
   including nested combinations like bold-containing-italic. Verified in
   MicroEmulator, including on a real page (`info.cern.ch`'s own `<h1>`).
+- Link navigation: `<a href>` links render blue and underlined, with one
+  link at a time focused (highlighted). UP/DOWN moves focus to the next
+  visible link, scrolling one line at a time toward it (never jumping) when
+  it isn't on screen yet; the fire/select key activates the focused link.
+  Touch-only devices (no fire key) activate by tapping the link directly.
+  In-page anchors (`#...`) and `javascript:` links are safely ignored
+  rather than mis-navigating. Verified in MicroEmulator and on real
+  hardware, including touch activation.
 
 ## [0.2.0] - 2026-09-12
 

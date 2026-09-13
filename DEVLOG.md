@@ -6,6 +6,17 @@ from a user's perspective.
 
 ## 2026-09-13
 
+- Extracted `Theme.java`: color constants (text, background, link, link
+  highlight) that were previously inline `0xRRGGBB` literals scattered
+  through `BrowserCanvas`'s paint code. No behavior change -- this is
+  purely so an eventual user-configurable theme setting is a values swap
+  in one small file, not a rendering-logic change.
+- Added `testdata/alice-test.html`, a real Project Gutenberg excerpt
+  (Alice's Adventures in Wonderland, ch. 1) used to test link navigation
+  and scrolling against real, readable prose instead of Lorem Ipsum --
+  much easier to judge "did I lose my place while scrolling" against text
+  a human can actually follow. Includes a `#`-anchor link to exercise the
+  in-page-anchor guard in `MainMIDlet.onActivateLink`.
 - Split `MainMIDlet.java` (718 lines, four tangled concerns) into
   `MainMIDlet.java` (orchestration), `Http.java` (transport), `HtmlText.java`
   (parsing), and `BrowserCanvas.java` (rendering) -- flat default package,

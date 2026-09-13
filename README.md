@@ -54,6 +54,9 @@ usually die from scope creep.
   list items on their own line — scrollable via D-pad or touch drag
 - ✅ Inline formatting — bold, italic, and heading sizes render styled
   (including nesting, e.g. bold-containing-italic), not as plain text
+- ✅ Link navigation — links render blue/underlined with one focused
+  (highlighted) at a time; UP/DOWN moves focus without ever jumping the
+  viewport, fire/select activates, touch devices tap to activate
 - ✅ HTTP redirects (301, 302, 303, 307, 308) are followed automatically,
   up to 5 hops
 - ✅ Session cookies (`Set-Cookie`/`Cookie`, in-memory, per-host, no
@@ -123,7 +126,9 @@ doesn't need to wait on the hardest problem in the project.
   - [x] Inline formatting: `<b>`/`<strong>`, `<i>`/`<em>`, `<h1>`-`<h6>`
     (bold + a larger size), with a small nesting stack so combinations
     like bold-containing-italic restore correctly on close
-  - [ ] Links, with positions, for hit-testing
+  - [x] Links: `<a href>` tracked the same way as bold/italic (a span
+    attribute via the style stack), resolved against the current page's
+    URL at activation time (`Http.resolveUrl`, shared with redirects)
 - [ ] A minimal CSS parser for the font-size/alignment/margin subset above
 
 ### 3. Rendering / UI
@@ -137,7 +142,10 @@ doesn't need to wait on the hardest problem in the project.
   above (mixed fonts per line, variable line height for headings)
 - [ ] Image scaling (J2ME's `Image.createImage(byte[])` already decodes
   PNG/JPEG natively — this module is scaling logic, not a decoder)
-- [ ] Link hit-testing — consumes link spans from the Parsing stages above
+- [x] Link hit-testing — one link focused at a time, UP/DOWN moves focus
+  without jumping the viewport (only scrolls one line toward an
+  off-screen link, same as plain scroll, until it's naturally visible),
+  fire/select activates; touch devices tap the link directly instead
 - [ ] Form input handling (text fields, checkboxes) and submit-request
   building
 
@@ -146,6 +154,10 @@ doesn't need to wait on the hardest problem in the project.
   by title (falling back to URL), most recent first
 - [ ] Bookmarks, downloads, and page saving via `RecordStore` — same
   mechanism as history, mechanically simple, no research risk
+- [ ] Settings, including a user-configurable theme — colors are already
+  centralized in `Theme.java` rather than scattered through rendering code,
+  specifically so this can later source them from settings instead of
+  fixed constants without changing any rendering logic
 
 ## HTTPS / TLS plan
 
@@ -265,6 +277,8 @@ Over Bluetooth:
   touch scrolling
 - `src/History.java` — App shell layer: visited-page history via
   `RecordStore`
+- `src/Theme.java` — centralized color constants for `BrowserCanvas`,
+  ahead of an eventual user-configurable theme setting
 - `app.jad` — app descriptor (name/version/vendor metadata)
 - `Makefile` — build pipeline
 - `scripts/serve.py` — HTTP server for OTA installs, serving from repo

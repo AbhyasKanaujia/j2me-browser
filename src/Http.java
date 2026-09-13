@@ -103,12 +103,13 @@ final class Http {
                 || responseCode == 307 || responseCode == 308;
     }
 
-    // CLDC 1.1 has no java.net.URL, so relative Location headers are resolved by hand.
+    // CLDC 1.1 has no java.net.URL, so relative locations are resolved by hand.
     // Handles absolute URLs, protocol-relative ("//host/path"), and absolute-path
-    // ("/path") locations -- the common cases for server-issued redirects. Locations
-    // relative to the current path (e.g. "next.html") are resolved against the
-    // current path's directory.
-    private static String resolveUrl(String base, String location) {
+    // ("/path") locations -- the common cases for both server-issued redirects
+    // and page-authored link hrefs (this is also called from MainMIDlet for the
+    // latter). Locations relative to the current path (e.g. "next.html") are
+    // resolved against the current path's directory.
+    static String resolveUrl(String base, String location) {
         if (location.indexOf("://") >= 0) {
             return location;
         }

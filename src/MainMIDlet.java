@@ -12,7 +12,7 @@ import java.util.Vector;
 // Orchestration only -- delegates fetching to Http, HTML-to-text conversion
 // to HtmlText, and rendering/scrolling to BrowserCanvas. See
 // docs/adr/0006-one-file-per-concern.md for why this file stays this small.
-public class MainMIDlet extends MIDlet implements CommandListener {
+public class MainMIDlet extends MIDlet implements CommandListener, BrowserCanvas.LinkListener {
     private static final String FETCH_URL = "http://info.cern.ch/";
 
     private final Display display;
@@ -44,6 +44,7 @@ public class MainMIDlet extends MIDlet implements CommandListener {
         canvas.addCommand(goToCommand);
         canvas.addCommand(historyCommand);
         canvas.setCommandListener(this);
+        canvas.setLinkListener(this);
     }
 
     public void startApp() {
@@ -130,9 +131,7 @@ public class MainMIDlet extends MIDlet implements CommandListener {
             String url = normalizeUrl(((TextBox) displayable).getString());
             display.setCurrent(canvas);
             if (url != null) {
-                pushBack(currentUrl);
-                clearForward();
-                startFetch(url);
+                navigateTo(url);
             }
         } else if (command == cancelCommand) {
             display.setCurrent(canvas);
@@ -154,11 +153,28 @@ public class MainMIDlet extends MIDlet implements CommandListener {
             int index = ((List) displayable).getSelectedIndex();
             display.setCurrent(canvas);
             if (index >= 0 && historyUrls != null && index < historyUrls.size()) {
-                String url = (String) historyUrls.elementAt(index);
-                pushBack(currentUrl);
-                clearForward();
-                startFetch(url);
+                navigateTo((String) historyUrls.elementAt(index));
             }
+        }
+    }
+
+    private void navigateTo(String url) {
+        pushBack(currentUrl);
+        clearForward();
+        startFetch(url);
+    }
+
+    // Called by BrowserCanvas when the user activates the focused/tapped link.
+    public void onActivateLink(String href) {
+        if (href == null || href.length() == 0 || href.startsWith("#")) {
+            return; // empty, or an in-page anchor -- not supported yet
+        }
+        if (href.toLowerCase().startsWith("javascript:")) {
+            return; // JS is out of scope by design
+        }
+        String url = Http.resolveUrl(currentUrl, href);
+        if (url != null) {
+            navigateTo(url);
         }
     }
 

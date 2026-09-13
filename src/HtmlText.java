@@ -16,17 +16,22 @@ final class HtmlText {
     // A run of text with a single, uniform style -- BrowserCanvas resolves
     // (bold, italic, sizeTier) to an actual Font; this class stays free of
     // any javax.microedition.lcdui dependency, per ADR-0006's layering.
+    // href is the raw attribute value (possibly relative), null if this span
+    // isn't part of a link -- resolving it against the current page's URL is
+    // left to the caller, same as Http already does for redirect locations.
     static final class Span {
         final String text;
         final boolean bold;
         final boolean italic;
         final int sizeTier;
+        final String href;
 
-        Span(String text, boolean bold, boolean italic, int sizeTier) {
+        Span(String text, boolean bold, boolean italic, int sizeTier, String href) {
             this.text = text;
             this.bold = bold;
             this.italic = italic;
             this.sizeTier = sizeTier;
+            this.href = href;
         }
     }
 
@@ -45,12 +50,14 @@ final class HtmlText {
         final boolean bold;
         final boolean italic;
         final int sizeTier;
+        final String href;
 
-        StyleFrame(String tagName, boolean bold, boolean italic, int sizeTier) {
+        StyleFrame(String tagName, boolean bold, boolean italic, int sizeTier, String href) {
             this.tagName = tagName;
             this.bold = bold;
             this.italic = italic;
             this.sizeTier = sizeTier;
+            this.href = href;
         }
     }
 
@@ -75,6 +82,7 @@ final class HtmlText {
         boolean bold = false;
         boolean italic = false;
         int sizeTier = SIZE_NORMAL;
+        String href = null;
         Vector styleStack = new Vector();
         boolean anyOutput = false;
 
@@ -147,7 +155,7 @@ final class HtmlText {
 
                 if (isStyleTag(name)) {
                     if (currentText.length() > 0) {
-                        spans.addElement(new Span(decodeEntities(currentText.toString()), bold, italic, sizeTier));
+                        spans.addElement(new Span(decodeEntities(currentText.toString()), bold, italic, sizeTier, href));
                         currentText.setLength(0);
                     }
                     if (isClosing) {
@@ -160,9 +168,10 @@ final class HtmlText {
                             bold = frame.bold;
                             italic = frame.italic;
                             sizeTier = frame.sizeTier;
+                            href = frame.href;
                         }
                     } else {
-                        styleStack.addElement(new StyleFrame(name, bold, italic, sizeTier));
+                        styleStack.addElement(new StyleFrame(name, bold, italic, sizeTier, href));
                         if (isBoldTag(name)) {
                             bold = true;
                         }
@@ -174,6 +183,10 @@ final class HtmlText {
                             bold = true;
                             sizeTier = heading;
                         }
+                        if (name.equals("a")) {
+                            String rawHref = extractAttribute(tagContent, "href");
+                            href = (rawHref == null) ? null : decodeEntities(rawHref);
+                        }
                     }
                 } else if (!isBlockTag(name) && !name.equals("li") && !name.equals("br")) {
                     if (pendingBreaks == 0 && anyOutput) {
@@ -184,7 +197,7 @@ final class HtmlText {
             i = close + 1;
         }
         if (currentText.length() > 0) {
-            spans.addElement(new Span(decodeEntities(currentText.toString()), bold, italic, sizeTier));
+            spans.addElement(new Span(decodeEntities(currentText.toString()), bold, italic, sizeTier, href));
         }
         return new Result(spans, collapseWhitespace(decodeEntities(title.toString())));
     }
@@ -217,7 +230,36 @@ final class HtmlText {
     }
 
     private static boolean isStyleTag(String name) {
-        return isBoldTag(name) || isItalicTag(name) || headingSizeTier(name) >= 0;
+        return isBoldTag(name) || isItalicTag(name) || headingSizeTier(name) >= 0 || name.equals("a");
+    }
+
+    // Tolerant attribute-value extraction: double-quoted, single-quoted, or
+    // bare. Only matches attrName at a word boundary (preceded by whitespace
+    // or start-of-string) so e.g. "xhref=" doesn't get mistaken for "href=".
+    private static String extractAttribute(String tagContent, String attrName) {
+        String needle = attrName + "=";
+        String lower = tagContent.toLowerCase();
+        int idx = lower.indexOf(needle);
+        while (idx >= 0 && idx > 0 && !isSpace(tagContent.charAt(idx - 1))) {
+            idx = lower.indexOf(needle, idx + 1);
+        }
+        if (idx < 0) {
+            return null;
+        }
+        int valueStart = idx + needle.length();
+        if (valueStart >= tagContent.length()) {
+            return null;
+        }
+        char quote = tagContent.charAt(valueStart);
+        if (quote == '"' || quote == '\'') {
+            int end = tagContent.indexOf(quote, valueStart + 1);
+            return (end < 0) ? null : tagContent.substring(valueStart + 1, end);
+        }
+        int end = valueStart;
+        while (end < tagContent.length() && !isSpace(tagContent.charAt(end))) {
+            end++;
+        }
+        return tagContent.substring(valueStart, end);
     }
 
     // Collapses runs of whitespace (common in hand-formatted <title>...</title>
