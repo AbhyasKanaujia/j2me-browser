@@ -1,0 +1,59 @@
+<html>
+<head>
+<title>Scroll Test</title>
+<style>body { color: red; }</style>
+<script>var shouldNotAppear = "script content must be dropped";</script>
+</head>
+<body>
+
+<h1>Scroll Test Page</h1>
+
+<p>This page exists to exercise the browser's rendering pipeline locally
+instead of depending on external sites: tag stripping, entity decoding,
+block-level line breaks, list items, and scrolling on a long page.</p>
+
+<p>Copyright &copy; 2026 &mdash; some rights reserved. Rock &amp; roll.
+&ldquo;Quoted text&rdquo; and a &lsquo;single-quoted&rsquo; word. An
+ellipsis&hellip; and a stray ampersand & should not break anything.</p>
+
+<h2>A List</h2>
+
+<ul>
+<li>First item</li>
+<li>Second item with <b>bold</b> and <i>italic</i> markup that should be
+stripped, not styled, at this stage</li>
+<li>Third item with a <a href="http://example.com/">link</a> that should
+render as plain text for now, since link hit-testing is a later stage</li>
+</ul>
+
+<h2>Paragraphs For Scrolling</h2>
+
+<p>Paragraph one. Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
+ex ea commodo consequat.</p>
+
+<p>Paragraph two. Duis aute irure dolor in reprehenderit in voluptate velit
+esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+est laborum.</p>
+
+<p>Paragraph three. Sed ut perspiciatis unde omnis iste natus error sit
+voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque
+ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae
+dicta sunt explicabo.</p>
+
+<p>Paragraph four. Nemo enim ipsam voluptatem quia voluptas sit aspernatur
+aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione
+voluptatem sequi nesciunt.</p>
+
+<p>Paragraph five. Neque porro quisquam est, qui dolorem ipsum quia dolor
+sit amet, consectetur, adipisci velit, sed quia non numquam eius modi
+tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.</p>
+
+<h2>End</h2>
+
+<p>If you can scroll down to this line, scrolling works.</p>
+
+</body>
+</html>

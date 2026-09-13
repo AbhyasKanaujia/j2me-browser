@@ -22,7 +22,8 @@ Open a [feature request](https://github.com/AbhyasKanaujia/j2me-browser/issues/n
 - `src/MainMIDlet.java` — MIDlet entry point, the `Canvas` subclass, and all rendering logic (currently a single file; see `AGENTS.md` for how this is expected to split up as more modules land).
 - `app.jad` — app descriptor (name/version/vendor/permissions).
 - `Makefile` — build pipeline; `make help` lists commands.
-- `docs/adr/` — Architecture Decision Records: the rationale behind foundational, hard-to-reverse decisions (no-proxy design, TLS split, cipher suite, device baseline).
+- `testdata/` — local HTML fixtures for exercising the rendering pipeline without depending on external sites' content staying stable; served automatically by `scripts/serve.py` at `http://<host>:8765/testdata/<file>`, no separate server needed.
+- `docs/adr/` — Architecture Decision Records: the rationale behind foundational, hard-to-reverse decisions (no-proxy design, TLS split, cipher suite, device baseline, staged text-flow rendering).
 - `docs/index.html` — the GitHub Pages landing page (install link + project summary).
 
 ### Why plain HTTP only, for now

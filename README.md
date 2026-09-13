@@ -247,19 +247,33 @@ Over Bluetooth:
 
 ## Project Layout
 
-- `src/MainMIDlet.java` — MIDlet entry point and UI
+- `src/MainMIDlet.java` — MIDlet lifecycle, command wiring, navigation
+  (back/forward) stack; orchestration only
+- `src/Http.java` — Transport layer: fetch, redirects, cookies, URL
+  resolution
+- `src/HtmlText.java` — Parsing layer (current stage): tag stripping,
+  entity decoding, block-level structure
+- `src/BrowserCanvas.java` — Rendering/UI layer: word-wrap, paint, key and
+  touch scrolling
 - `app.jad` — app descriptor (name/version/vendor metadata)
 - `Makefile` — build pipeline
-- `scripts/serve.py` — HTTP server for OTA installs, serving from repo root
+- `scripts/serve.py` — HTTP server for OTA installs, serving from repo
+  root; also serves `testdata/` for local test pages (no separate server
+  needed — anything dropped there is reachable at
+  `http://<host>:8765/testdata/<file>`)
+- `testdata/` — local HTML fixtures for exercising the rendering pipeline
+  (tag stripping, entities, scrolling) without depending on external
+  sites' content staying stable
 - `docs/adr/` — Architecture Decision Records: the why behind foundational,
   hard-to-reverse choices (no-proxy design, TLS split, cipher suite,
-  device baseline, staged text-flow rendering), one file per decision,
-  starting with [ADR-0000](docs/adr/0000-use-architecture-decision-records.md)
-  on why this repo uses ADRs at all
+  device baseline, staged text-flow rendering, one file per concern), one
+  file per decision, starting with
+  [ADR-0000](docs/adr/0000-use-architecture-decision-records.md) on why
+  this repo uses ADRs at all
 
-As the modules described in [Architecture & Roadmap](#architecture--roadmap)
-land, this layout will grow to reflect them (e.g. separate packages for
-transport, parsing, rendering, and TLS) rather than staying a single file.
+As new roadmap layers land (a CSS engine, forms, history/bookmarks), they
+get their own new file rather than growing one of the four above — see
+[ADR-0006](docs/adr/0006-one-file-per-concern.md).
 
 ## Feature requests & bugs
 

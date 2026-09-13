@@ -14,7 +14,11 @@
 - Test: there's no automated test suite — feature-phone UI can't be
   meaningfully scripted. Don't try to automate it with throwaway scripts;
   build and hand the change to the user to validate in MicroEmulator or on
-  real hardware instead.
+  real hardware instead. For rendering/parsing changes, prefer pointing
+  `FETCH_URL` at a fixture in `testdata/` (served locally by
+  `scripts/serve.py`, no setup needed) over an external site — fixtures
+  don't change out from under you and can be crafted to hit a specific
+  code path.
 - Network: only plain HTTP works today — there is no on-device TLS yet (see
   `docs/adr/0002-tls-primitives-vs-protocol-split.md` and
   `docs/adr/0003-ecdhe-p256-aes-gcm-cipher-suite.md` for the HTTPS plan and
@@ -26,13 +30,16 @@
 - Scope: JavaScript, frames/iframes, video/audio playback, and modern CSS
   are permanently out of scope, not deferred — see the README's "How much
   of a browser is this?" section before adding anything in that territory.
-- Layout: currently a single file, `src/MainMIDlet.java` (MIDlet entry
-  point, `Canvas` subclass, and all rendering logic). As the parsing/
-  transport/rendering modules in the README's Architecture & Roadmap land,
-  split them into one small file per concern instead of growing this file
-  indefinitely — see `tunemeta-midlet`'s `src/` for the pattern this project
-  will converge on (`Http.java`, a parser, etc., all in the default
-  package).
+- Layout: one file per concern, flat default package (no `package`
+  declarations) — `MainMIDlet.java` (MIDlet lifecycle, commands,
+  navigation stack), `Http.java` (transport: fetch/redirects/cookies),
+  `HtmlText.java` (parsing: tag stripping/entities/block structure),
+  `BrowserCanvas.java` (rendering: word-wrap/paint/scroll). New roadmap
+  layers (CSS engine, forms, history/bookmarks) get their own new file,
+  not an addition to one of these four. See
+  `docs/adr/0006-one-file-per-concern.md` for the rationale and the
+  real-world projects (`tunemeta-midlet`, `discord-j2me`, LWUIT, Dillo,
+  Lynx) it's grounded in.
 - Keep `CHANGELOG.md` up to date per
   `https://keepachangelog.com/en/1.1.0/`. It's user-facing ("what's new"),
   not a dev log — no internal/technical details (root causes, research
