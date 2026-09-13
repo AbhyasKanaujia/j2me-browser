@@ -169,16 +169,38 @@ public class MainMIDlet extends MIDlet implements CommandListener {
     // Strips tags down to plain text: no block/paragraph structure preserved yet
     // (that's layout, a later stage), just tag-soup -> readable text. <script> and
     // <style> element content is dropped entirely rather than shown as text.
+    //
+    // Block-level tags queue a forced line break (rendered by BrowserCanvas.wrap,
+    // which treats '\n' specially) instead of the plain space used for inline
+    // tags, so paragraphs/headings/list items land on their own line rather than
+    // running together. <li> also queues a "- " prefix -- ordered and unordered
+    // lists both just get a dash, no item numbering yet.
     private static String stripTags(String html) {
         StringBuffer out = new StringBuffer();
         int len = html.length();
         int i = 0;
         String skipUntil = null;
+        int pendingBreaks = 0;
+        String pendingPrefix = null;
         while (i < len) {
             char c = html.charAt(i);
             if (c != '<') {
                 if (skipUntil == null) {
-                    out.append(c);
+                    if (isSpace(c)) {
+                        if (pendingBreaks == 0 && out.length() > 0) {
+                            out.append(' ');
+                        }
+                    } else {
+                        while (pendingBreaks > 0) {
+                            out.append('\n');
+                            pendingBreaks--;
+                        }
+                        if (pendingPrefix != null) {
+                            out.append(pendingPrefix);
+                            pendingPrefix = null;
+                        }
+                        out.append(c);
+                    }
                 }
                 i++;
                 continue;
@@ -201,12 +223,39 @@ public class MainMIDlet extends MIDlet implements CommandListener {
                 }
             } else if (!isClosing && (name.equals("script") || name.equals("style"))) {
                 skipUntil = name;
+            } else if (isBlockTag(name)) {
+                if (pendingBreaks < 2) {
+                    pendingBreaks = 2;
+                }
+            } else if (name.equals("li")) {
+                if (!isClosing) {
+                    if (pendingBreaks < 1) {
+                        pendingBreaks = 1;
+                    }
+                    pendingPrefix = "- ";
+                }
+            } else if (name.equals("br")) {
+                if (pendingBreaks < 1) {
+                    pendingBreaks = 1;
+                }
             } else {
                 out.append(' ');
             }
             i = close + 1;
         }
         return decodeEntities(out.toString());
+    }
+
+    private static boolean isBlockTag(String name) {
+        return name.equals("p") || name.equals("div") || name.equals("tr")
+                || name.equals("table") || name.equals("ul") || name.equals("ol")
+                || name.equals("blockquote") || name.equals("hr")
+                || name.equals("h1") || name.equals("h2") || name.equals("h3")
+                || name.equals("h4") || name.equals("h5") || name.equals("h6");
+    }
+
+    private static boolean isSpace(char c) {
+        return c == ' ' || c == '\t' || c == '\r' || c == '\n';
     }
 
     private static String tagName(String tagContent) {
@@ -506,6 +555,10 @@ public class MainMIDlet extends MIDlet implements CommandListener {
         }
 
         // CLDC 1.1 has no java.util.StringTokenizer, so words are split by hand.
+        // '\n' is a forced line break (from stripTags' block-tag handling), not
+        // just a word separator like the other whitespace classes -- callers of
+        // stripTags have already normalized incidental source whitespace to plain
+        // spaces, so any '\n' reaching here is intentional.
         private static Vector wrap(String text, int maxWidth, Font font) {
             Vector result = new Vector();
             if (maxWidth <= 0) {
@@ -520,11 +573,14 @@ public class MainMIDlet extends MIDlet implements CommandListener {
                     currentWord.append(c);
                     continue;
                 }
-                if (currentWord.length() == 0) {
-                    continue;
+                if (currentWord.length() > 0) {
+                    currentLine = addWord(result, currentLine, currentWord.toString(), maxWidth, font);
+                    currentWord = new StringBuffer();
                 }
-                currentLine = addWord(result, currentLine, currentWord.toString(), maxWidth, font);
-                currentWord = new StringBuffer();
+                if (c == '\n') {
+                    result.addElement(currentLine.toString());
+                    currentLine = new StringBuffer();
+                }
             }
             if (currentLine.length() > 0) {
                 result.addElement(currentLine.toString());

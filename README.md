@@ -107,11 +107,14 @@ doesn't need to wait on the hardest problem in the project.
 
 ### 2. Parsing
 - [x] UTF-8 → `char` decoding
-- [ ] Tolerant ("tag soup") HTML parsing, built in stages:
+- [ ] Tolerant ("tag soup") HTML parsing, built in stages — see
+  [ADR-0005](docs/adr/0005-staged-text-flow-rendering.md) for why this is
+  staged text-flow approximation rather than upfront box-model layout:
   - [x] Strip tags to plain readable text (`<script>`/`<style>` dropped,
     entities decoded) — no block/paragraph structure preserved yet
-  - [ ] Recognize block-level structure (paragraphs, headings, lists) for
-    layout
+  - [x] Recognize block-level structure: paragraphs/headings/lists get
+    forced line breaks and list items a `"- "` prefix (see ADR-0005 —
+    text-flow approximation, not real block boxes/indentation)
   - [ ] Inline formatting (bold, italic, size)
   - [ ] Links, with positions, for hit-testing
 - [ ] A minimal CSS parser for the font-size/alignment/margin subset above
@@ -250,9 +253,9 @@ Over Bluetooth:
 - `scripts/serve.py` — HTTP server for OTA installs, serving from repo root
 - `docs/adr/` — Architecture Decision Records: the why behind foundational,
   hard-to-reverse choices (no-proxy design, TLS split, cipher suite,
-  device baseline), one file per decision, starting with
-  [ADR-0000](docs/adr/0000-use-architecture-decision-records.md) on why
-  this repo uses ADRs at all
+  device baseline, staged text-flow rendering), one file per decision,
+  starting with [ADR-0000](docs/adr/0000-use-architecture-decision-records.md)
+  on why this repo uses ADRs at all
 
 As the modules described in [Architecture & Roadmap](#architecture--roadmap)
 land, this layout will grow to reflect them (e.g. separate packages for

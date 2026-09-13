@@ -19,6 +19,11 @@ via `MIDlet-Version` in `app.jad`).
 - Dropped the "HTTP 200 - N bytes" status line for successful page loads --
   it was only ever useful for proving the network stack worked, and now
   just eats screen space. Still shown for non-2xx responses and failures.
+- Block-level structure: paragraphs, headings, and list items now start on
+  their own line instead of running together, with list items getting a
+  `"- "` prefix. A text-flow approximation, not real block-box layout --
+  see [ADR-0005](docs/adr/0005-staged-text-flow-rendering.md). Verified in
+  MicroEmulator.
 
 ## [0.2.0] - 2026-09-12
 
