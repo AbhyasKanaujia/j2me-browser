@@ -49,8 +49,9 @@ usually die from scope creep.
   HTTP on startup and renders the result, proving the transport stack works
   end to end on both emulator and real hardware
 - ✅ Fetched bytes are decoded as UTF-8, tags stripped to plain text
-  (`<script>`/`<style>` dropped, entities decoded), and rendered as
-  word-wrapped, scrollable text — no block/paragraph structure yet
+  (`<script>`/`<style>`/`<title>` excluded from the body, entities
+  decoded), and rendered as word-wrapped text with paragraphs/headings/
+  list items on their own line — scrollable via D-pad or touch drag
 - ✅ HTTP redirects (301, 302, 303, 307, 308) are followed automatically,
   up to 5 hops
 - ✅ Session cookies (`Set-Cookie`/`Cookie`, in-memory, per-host, no
@@ -58,6 +59,8 @@ usually die from scope creep.
 - ✅ Go to address — visit any URL via a "Go to..." command, not just the
   startup page
 - ✅ Back/Forward navigation through the in-session history
+- ✅ History — visited pages are persisted via `RecordStore` and browsable
+  by title (falling back to URL), most recent first
 - 🚧 Everything else below is planned, not yet built
 
 ## How much of a browser is this?
@@ -135,9 +138,10 @@ doesn't need to wait on the hardest problem in the project.
   building
 
 ### 4. App shell
-- [ ] History, bookmarks, downloads, and page saving via MIDP `RecordStore`
-  — mechanically simple, no research risk, can be built in parallel with
-  anything above
+- [x] History — visited pages recorded via MIDP `RecordStore`, browsable
+  by title (falling back to URL), most recent first
+- [ ] Bookmarks, downloads, and page saving via `RecordStore` — same
+  mechanism as history, mechanically simple, no research risk
 
 ## HTTPS / TLS plan
 
@@ -255,6 +259,8 @@ Over Bluetooth:
   entity decoding, block-level structure
 - `src/BrowserCanvas.java` — Rendering/UI layer: word-wrap, paint, key and
   touch scrolling
+- `src/History.java` — App shell layer: visited-page history via
+  `RecordStore`
 - `app.jad` — app descriptor (name/version/vendor metadata)
 - `Makefile` — build pipeline
 - `scripts/serve.py` — HTTP server for OTA installs, serving from repo

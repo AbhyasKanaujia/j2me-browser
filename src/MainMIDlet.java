@@ -2,6 +2,7 @@ import javax.microedition.lcdui.Command;
 import javax.microedition.lcdui.CommandListener;
 import javax.microedition.lcdui.Display;
 import javax.microedition.lcdui.Displayable;
+import javax.microedition.lcdui.List;
 import javax.microedition.lcdui.TextBox;
 import javax.microedition.lcdui.TextField;
 import javax.microedition.midlet.MIDlet;
@@ -22,10 +23,12 @@ public class MainMIDlet extends MIDlet implements CommandListener {
     private final Command cancelCommand;
     private final Command backCommand;
     private final Command forwardCommand;
+    private final Command historyCommand;
     private final Vector backStack = new Vector();
     private final Vector forwardStack = new Vector();
     private boolean fetchStarted;
     private String currentUrl = FETCH_URL;
+    private Vector historyUrls; // parallel to the currently displayed History List's items
 
     public MainMIDlet() {
         display = Display.getDisplay(this);
@@ -36,8 +39,10 @@ public class MainMIDlet extends MIDlet implements CommandListener {
         cancelCommand = new Command("Cancel", Command.CANCEL, 1);
         backCommand = new Command("Back", Command.BACK, 1);
         forwardCommand = new Command("Forward", Command.SCREEN, 1);
+        historyCommand = new Command("History", Command.SCREEN, 2);
         canvas.addCommand(exitCommand);
         canvas.addCommand(goToCommand);
+        canvas.addCommand(historyCommand);
         canvas.setCommandListener(this);
     }
 
@@ -55,6 +60,20 @@ public class MainMIDlet extends MIDlet implements CommandListener {
         box.addCommand(cancelCommand);
         box.setCommandListener(this);
         display.setCurrent(box);
+    }
+
+    private void openHistory() {
+        Vector entries = History.list();
+        List list = new List("History", List.IMPLICIT);
+        historyUrls = new Vector();
+        for (int i = 0; i < entries.size(); i++) {
+            History.Entry entry = (History.Entry) entries.elementAt(i);
+            list.append(entry.title, null);
+            historyUrls.addElement(entry.url);
+        }
+        list.addCommand(cancelCommand);
+        list.setCommandListener(this);
+        display.setCurrent(list);
     }
 
     private static String normalizeUrl(String input) {
@@ -87,7 +106,9 @@ public class MainMIDlet extends MIDlet implements CommandListener {
             } catch (Exception e) {
                 pageText = new String(result.body);
             }
-            canvas.setPageText(HtmlText.stripTags(pageText));
+            HtmlText.Result parsed = HtmlText.parse(pageText);
+            canvas.setPageText(parsed.text);
+            History.record(currentUrl, parsed.title);
         } else {
             canvas.clearContent();
         }
@@ -126,6 +147,17 @@ public class MainMIDlet extends MIDlet implements CommandListener {
                 String next = popForward();
                 pushBack(currentUrl);
                 startFetch(next);
+            }
+        } else if (command == historyCommand) {
+            openHistory();
+        } else if (command == List.SELECT_COMMAND && displayable instanceof List) {
+            int index = ((List) displayable).getSelectedIndex();
+            display.setCurrent(canvas);
+            if (index >= 0 && historyUrls != null && index < historyUrls.size()) {
+                String url = (String) historyUrls.elementAt(index);
+                pushBack(currentUrl);
+                clearForward();
+                startFetch(url);
             }
         }
     }

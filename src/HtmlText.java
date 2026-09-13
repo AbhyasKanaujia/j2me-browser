@@ -8,17 +8,30 @@ final class HtmlText {
     private HtmlText() {
     }
 
+    static final class Result {
+        final String text;
+        final String title;
+
+        Result(String text, String title) {
+            this.text = text;
+            this.title = title;
+        }
+    }
+
     // Strips tags down to plain text: no block/paragraph structure preserved yet
     // (that's layout, a later stage), just tag-soup -> readable text. <script> and
     // <style> element content is dropped entirely rather than shown as text.
+    // <title> content is also excluded from the body -- it's captured separately
+    // as Result.title instead (empty string if the page has none).
     //
     // Block-level tags queue a forced line break (rendered by BrowserCanvas.wrap,
     // which treats '\n' specially) instead of the plain space used for inline
     // tags, so paragraphs/headings/list items land on their own line rather than
     // running together. <li> also queues a "- " prefix -- ordered and unordered
     // lists both just get a dash, no item numbering yet.
-    static String stripTags(String html) {
+    static Result parse(String html) {
         StringBuffer out = new StringBuffer();
+        StringBuffer title = new StringBuffer();
         int len = html.length();
         int i = 0;
         String skipUntil = null;
@@ -43,6 +56,8 @@ final class HtmlText {
                         }
                         out.append(c);
                     }
+                } else if (skipUntil.equals("title")) {
+                    title.append(c);
                 }
                 i++;
                 continue;
@@ -63,7 +78,7 @@ final class HtmlText {
                 if (isClosing && name.equals(skipUntil)) {
                     skipUntil = null;
                 }
-            } else if (!isClosing && (name.equals("script") || name.equals("style"))) {
+            } else if (!isClosing && (name.equals("script") || name.equals("style") || name.equals("title"))) {
                 skipUntil = name;
             } else if (isBlockTag(name)) {
                 if (pendingBreaks < 2) {
@@ -85,7 +100,31 @@ final class HtmlText {
             }
             i = close + 1;
         }
-        return decodeEntities(out.toString());
+        return new Result(decodeEntities(out.toString()), collapseWhitespace(decodeEntities(title.toString())));
+    }
+
+    // Collapses runs of whitespace (common in hand-formatted <title>...</title>
+    // source) to single spaces and trims the ends.
+    private static String collapseWhitespace(String text) {
+        StringBuffer out = new StringBuffer();
+        boolean lastWasSpace = true;
+        int len = text.length();
+        for (int i = 0; i < len; i++) {
+            char c = text.charAt(i);
+            if (isSpace(c)) {
+                if (!lastWasSpace) {
+                    out.append(' ');
+                }
+                lastWasSpace = true;
+            } else {
+                out.append(c);
+                lastWasSpace = false;
+            }
+        }
+        while (out.length() > 0 && out.charAt(out.length() - 1) == ' ') {
+            out.setLength(out.length() - 1);
+        }
+        return out.toString();
     }
 
     private static boolean isBlockTag(String name) {

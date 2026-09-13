@@ -34,9 +34,10 @@
   declarations) — `MainMIDlet.java` (MIDlet lifecycle, commands,
   navigation stack), `Http.java` (transport: fetch/redirects/cookies),
   `HtmlText.java` (parsing: tag stripping/entities/block structure),
-  `BrowserCanvas.java` (rendering: word-wrap/paint/scroll). New roadmap
-  layers (CSS engine, forms, history/bookmarks) get their own new file,
-  not an addition to one of these four. See
+  `BrowserCanvas.java` (rendering: word-wrap/paint/scroll), `History.java`
+  (app shell: visited-page history via `RecordStore`). New roadmap layers
+  (CSS engine, forms, bookmarks) get their own new file, not an addition
+  to one of these five. See
   `docs/adr/0006-one-file-per-concern.md` for the rationale and the
   real-world projects (`tunemeta-midlet`, `discord-j2me`, LWUIT, Dillo,
   Lynx) it's grounded in.

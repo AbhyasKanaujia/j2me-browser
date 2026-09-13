@@ -24,6 +24,13 @@ via `MIDlet-Version` in `app.jad`).
   `"- "` prefix. A text-flow approximation, not real block-box layout --
   see [ADR-0005](docs/adr/0005-staged-text-flow-rendering.md). Verified in
   MicroEmulator.
+- Touch scrolling: drag-to-scroll for full-touch devices (e.g. the Asha UI)
+  that have no D-pad, so no key event ever fires. Whole-line scrolling,
+  same as the existing key-based scroll -- no smooth/inertial scrolling.
+  Verified on real hardware.
+- History: visited pages are recorded via `RecordStore` (page title when
+  available, falling back to the URL) and browsable from a "History"
+  command, most recently visited first. Verified in MicroEmulator.
 
 ## [0.2.0] - 2026-09-12
 
