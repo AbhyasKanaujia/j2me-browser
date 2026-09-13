@@ -107,7 +107,7 @@ public class MainMIDlet extends MIDlet implements CommandListener {
                 pageText = new String(result.body);
             }
             HtmlText.Result parsed = HtmlText.parse(pageText);
-            canvas.setPageText(parsed.text);
+            canvas.setPageText(parsed.spans);
             History.record(currentUrl, parsed.title);
         } else {
             canvas.clearContent();

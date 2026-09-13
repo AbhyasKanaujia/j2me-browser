@@ -1,37 +1,83 @@
 import java.util.Hashtable;
+import java.util.Vector;
 
-// Parsing layer, current stage: tag-soup HTML -> readable plain text. No
-// block/paragraph structure preserved beyond forced line breaks -- real
-// layout is a later stage. See docs/adr/0005-staged-text-flow-rendering.md
-// and docs/adr/0006-one-file-per-concern.md.
+// Parsing layer, current stage: tag-soup HTML -> styled text spans plus
+// forced-line-break/list-prefix markers. Still no real block-box layout --
+// see docs/adr/0005-staged-text-flow-rendering.md and
+// docs/adr/0006-one-file-per-concern.md.
 final class HtmlText {
     private HtmlText() {
     }
 
-    static final class Result {
+    static final int SIZE_NORMAL = 0;
+    static final int SIZE_MEDIUM = 1;
+    static final int SIZE_LARGE = 2;
+
+    // A run of text with a single, uniform style -- BrowserCanvas resolves
+    // (bold, italic, sizeTier) to an actual Font; this class stays free of
+    // any javax.microedition.lcdui dependency, per ADR-0006's layering.
+    static final class Span {
         final String text;
+        final boolean bold;
+        final boolean italic;
+        final int sizeTier;
+
+        Span(String text, boolean bold, boolean italic, int sizeTier) {
+            this.text = text;
+            this.bold = bold;
+            this.italic = italic;
+            this.sizeTier = sizeTier;
+        }
+    }
+
+    static final class Result {
+        final Vector spans;
         final String title;
 
-        Result(String text, String title) {
-            this.text = text;
+        Result(Vector spans, String title) {
+            this.spans = spans;
             this.title = title;
         }
     }
 
-    // Strips tags down to plain text: no block/paragraph structure preserved yet
-    // (that's layout, a later stage), just tag-soup -> readable text. <script> and
-    // <style> element content is dropped entirely rather than shown as text.
-    // <title> content is also excluded from the body -- it's captured separately
-    // as Result.title instead (empty string if the page has none).
+    private static final class StyleFrame {
+        final String tagName;
+        final boolean bold;
+        final boolean italic;
+        final int sizeTier;
+
+        StyleFrame(String tagName, boolean bold, boolean italic, int sizeTier) {
+            this.tagName = tagName;
+            this.bold = bold;
+            this.italic = italic;
+            this.sizeTier = sizeTier;
+        }
+    }
+
+    // Converts tag-soup HTML into a sequence of styled Spans plus forced line
+    // breaks/list prefixes, tracked the same way as before (embedded '\n' and
+    // "- " directly in span text, interpreted downstream by BrowserCanvas).
+    // <script>/<style>/<title> content is excluded entirely from the spans;
+    // <title> is captured separately as Result.title.
     //
-    // Block-level tags queue a forced line break (rendered by BrowserCanvas.wrap,
-    // which treats '\n' specially) instead of the plain space used for inline
-    // tags, so paragraphs/headings/list items land on their own line rather than
-    // running together. <li> also queues a "- " prefix -- ordered and unordered
-    // lists both just get a dash, no item numbering yet.
+    // <b>/<strong>, <i>/<em>, and <h1>-<h6> (bold + a larger size tier) each
+    // start a new span when they open or close, tracked with a small
+    // open-tag stack so nesting (e.g. bold containing italic) restores the
+    // right state on close. A style tag closing mid-word (no surrounding
+    // whitespace, e.g. "<b>Wor</b>ld") is treated as two separate words --
+    // real-world markup essentially never splits a word across a style
+    // boundary, so this is an accepted simplification rather than tracked
+    // precisely.
     static Result parse(String html) {
-        StringBuffer out = new StringBuffer();
+        Vector spans = new Vector();
+        StringBuffer currentText = new StringBuffer();
         StringBuffer title = new StringBuffer();
+        boolean bold = false;
+        boolean italic = false;
+        int sizeTier = SIZE_NORMAL;
+        Vector styleStack = new Vector();
+        boolean anyOutput = false;
+
         int len = html.length();
         int i = 0;
         String skipUntil = null;
@@ -42,19 +88,20 @@ final class HtmlText {
             if (c != '<') {
                 if (skipUntil == null) {
                     if (isSpace(c)) {
-                        if (pendingBreaks == 0 && out.length() > 0) {
-                            out.append(' ');
+                        if (pendingBreaks == 0 && anyOutput) {
+                            currentText.append(' ');
                         }
                     } else {
                         while (pendingBreaks > 0) {
-                            out.append('\n');
+                            currentText.append('\n');
                             pendingBreaks--;
                         }
                         if (pendingPrefix != null) {
-                            out.append(pendingPrefix);
+                            currentText.append(pendingPrefix);
                             pendingPrefix = null;
                         }
-                        out.append(c);
+                        currentText.append(c);
+                        anyOutput = true;
                     }
                 } else if (skipUntil.equals("title")) {
                     title.append(c);
@@ -80,31 +127,102 @@ final class HtmlText {
                 }
             } else if (!isClosing && (name.equals("script") || name.equals("style") || name.equals("title"))) {
                 skipUntil = name;
-            } else if (isBlockTag(name)) {
-                if (pendingBreaks < 2) {
-                    pendingBreaks = 2;
-                }
-            } else if (name.equals("li")) {
-                if (!isClosing) {
+            } else {
+                if (isBlockTag(name)) {
+                    if (pendingBreaks < 2) {
+                        pendingBreaks = 2;
+                    }
+                } else if (name.equals("li")) {
+                    if (!isClosing) {
+                        if (pendingBreaks < 1) {
+                            pendingBreaks = 1;
+                        }
+                        pendingPrefix = "- ";
+                    }
+                } else if (name.equals("br")) {
                     if (pendingBreaks < 1) {
                         pendingBreaks = 1;
                     }
-                    pendingPrefix = "- ";
                 }
-            } else if (name.equals("br")) {
-                if (pendingBreaks < 1) {
-                    pendingBreaks = 1;
+
+                if (isStyleTag(name)) {
+                    if (currentText.length() > 0) {
+                        spans.addElement(new Span(decodeEntities(currentText.toString()), bold, italic, sizeTier));
+                        currentText.setLength(0);
+                    }
+                    if (isClosing) {
+                        int frameIndex = findFrame(styleStack, name);
+                        if (frameIndex >= 0) {
+                            StyleFrame frame = (StyleFrame) styleStack.elementAt(frameIndex);
+                            while (styleStack.size() > frameIndex) {
+                                styleStack.removeElementAt(styleStack.size() - 1);
+                            }
+                            bold = frame.bold;
+                            italic = frame.italic;
+                            sizeTier = frame.sizeTier;
+                        }
+                    } else {
+                        styleStack.addElement(new StyleFrame(name, bold, italic, sizeTier));
+                        if (isBoldTag(name)) {
+                            bold = true;
+                        }
+                        if (isItalicTag(name)) {
+                            italic = true;
+                        }
+                        int heading = headingSizeTier(name);
+                        if (heading >= 0) {
+                            bold = true;
+                            sizeTier = heading;
+                        }
+                    }
+                } else if (!isBlockTag(name) && !name.equals("li") && !name.equals("br")) {
+                    if (pendingBreaks == 0 && anyOutput) {
+                        currentText.append(' ');
+                    }
                 }
-            } else {
-                out.append(' ');
             }
             i = close + 1;
         }
-        return new Result(decodeEntities(out.toString()), collapseWhitespace(decodeEntities(title.toString())));
+        if (currentText.length() > 0) {
+            spans.addElement(new Span(decodeEntities(currentText.toString()), bold, italic, sizeTier));
+        }
+        return new Result(spans, collapseWhitespace(decodeEntities(title.toString())));
+    }
+
+    private static int findFrame(Vector styleStack, String name) {
+        for (int i = styleStack.size() - 1; i >= 0; i--) {
+            if (((StyleFrame) styleStack.elementAt(i)).tagName.equals(name)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean isBoldTag(String name) {
+        return name.equals("b") || name.equals("strong");
+    }
+
+    private static boolean isItalicTag(String name) {
+        return name.equals("i") || name.equals("em");
+    }
+
+    private static int headingSizeTier(String name) {
+        if (name.equals("h1") || name.equals("h2")) {
+            return SIZE_LARGE;
+        }
+        if (name.equals("h3") || name.equals("h4") || name.equals("h5") || name.equals("h6")) {
+            return SIZE_MEDIUM;
+        }
+        return -1;
+    }
+
+    private static boolean isStyleTag(String name) {
+        return isBoldTag(name) || isItalicTag(name) || headingSizeTier(name) >= 0;
     }
 
     // Collapses runs of whitespace (common in hand-formatted <title>...</title>
-    // source) to single spaces and trims the ends.
+    // source) to single spaces and trims the ends. decodeEntities() runs
+    // first since entities can decode to whitespace (e.g. &nbsp;).
     private static String collapseWhitespace(String text) {
         StringBuffer out = new StringBuffer();
         boolean lastWasSpace = true;

@@ -52,6 +52,8 @@ usually die from scope creep.
   (`<script>`/`<style>`/`<title>` excluded from the body, entities
   decoded), and rendered as word-wrapped text with paragraphs/headings/
   list items on their own line — scrollable via D-pad or touch drag
+- ✅ Inline formatting — bold, italic, and heading sizes render styled
+  (including nesting, e.g. bold-containing-italic), not as plain text
 - ✅ HTTP redirects (301, 302, 303, 307, 308) are followed automatically,
   up to 5 hops
 - ✅ Session cookies (`Set-Cookie`/`Cookie`, in-memory, per-host, no
@@ -118,7 +120,9 @@ doesn't need to wait on the hardest problem in the project.
   - [x] Recognize block-level structure: paragraphs/headings/lists get
     forced line breaks and list items a `"- "` prefix (see ADR-0005 —
     text-flow approximation, not real block boxes/indentation)
-  - [ ] Inline formatting (bold, italic, size)
+  - [x] Inline formatting: `<b>`/`<strong>`, `<i>`/`<em>`, `<h1>`-`<h6>`
+    (bold + a larger size), with a small nesting stack so combinations
+    like bold-containing-italic restore correctly on close
   - [ ] Links, with positions, for hit-testing
 - [ ] A minimal CSS parser for the font-size/alignment/margin subset above
 
@@ -129,8 +133,8 @@ doesn't need to wait on the hardest problem in the project.
   existing fetch/render pipeline
 - [x] Back/Forward navigation via an in-session history stack (re-fetches
   each page rather than caching content)
-- [ ] Bold/italic/size — consumes inline-formatting spans from the Parsing
-  stages above
+- [x] Bold/italic/size — renders styled spans from the Parsing stages
+  above (mixed fonts per line, variable line height for headings)
 - [ ] Image scaling (J2ME's `Image.createImage(byte[])` already decodes
   PNG/JPEG natively — this module is scaling logic, not a decoder)
 - [ ] Link hit-testing — consumes link spans from the Parsing stages above

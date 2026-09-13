@@ -31,6 +31,10 @@ via `MIDlet-Version` in `app.jad`).
 - History: visited pages are recorded via `RecordStore` (page title when
   available, falling back to the URL) and browsable from a "History"
   command, most recently visited first. Verified in MicroEmulator.
+- Inline formatting: `<b>`/`<strong>`, `<i>`/`<em>`, and `<h1>`-`<h6>`
+  (bold plus a larger size) now render styled instead of as plain text,
+  including nested combinations like bold-containing-italic. Verified in
+  MicroEmulator, including on a real page (`info.cern.ch`'s own `<h1>`).
 
 ## [0.2.0] - 2026-09-12
 
