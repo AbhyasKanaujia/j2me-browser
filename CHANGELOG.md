@@ -8,6 +8,8 @@ via `MIDlet-Version` in `app.jad`).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-13
+
 ### Added
 - Back/Forward navigation: `Back` and `Forward` commands walk an in-session
   history stack, re-fetching each page rather than caching content. Going
